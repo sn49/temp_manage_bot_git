@@ -9,7 +9,6 @@ import os
 import random
 import asyncio
 import emoji
-from dateutil import tz
 import pymysql
 
 
