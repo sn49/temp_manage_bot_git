@@ -12,7 +12,7 @@ import emoji
 import pymysql
 
 
-testcheck = input("test모드 > 'test'입력")
+testcheck = open("secret/bootmode.txt", "r").read()
 
 sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
@@ -28,7 +28,7 @@ if testcheck == "test":
         password=sqlcon["password"],
         autocommit=True,
     )
-else:
+elif testcheck == "main":
     testmode = False
     database = pymysql.connect(
         user=sqlcon["user"],
@@ -38,11 +38,14 @@ else:
         password=sqlcon["password"],
         autocommit=True,
     )
+else:
+    mode_error = open("errorinfo.txt", "w")
+    mode_error.write("bootmode.txt의 내용이 'main'이거나 'test'가 아님")
 
 cur = database.cursor()
 
 
-rootname = "data/server"
+rootname = "data/server" 
 intents = nextcord.Intents.all()
 tokenfile = open("secret/token.json", "r", encoding="UTF-8")
 
@@ -64,13 +67,9 @@ async def on_ready():
 
 canspeak = None
 cantalk = None
-canjoin = None
 
 
 async def job():
-    global canspeak
-    global cantalk
-    global canjoin
 
     guild = await bot.fetch_guild(837200416303087616)
     role = guild.default_role
@@ -111,7 +110,7 @@ async def CheckTimeAndManagePermission(role, perms):
         and (hour <= 5 and minute < 30)
         and (cantalk == None or cantalk == True)
     ):
-        print("send message on")
+        print("send message off")
         perms.update(send_messages=False)
         talk = 0
     elif ((hour <= 1 and minute < 30) or (hour >= 5 and minute >= 30)) and (
