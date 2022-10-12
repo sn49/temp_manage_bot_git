@@ -167,7 +167,7 @@ async def on_member_join(member):
 
 
 async def CheckMessage(message):
-    blackwordfile = open("blackword.txt", "r", encoding="UTF-8")
+    blackwordfile = open("secret/blackword.txt", "r", encoding="UTF-8")
 
     blackwordlist = blackwordfile.read().split("\n")
     blackwordfile.close()
@@ -184,20 +184,9 @@ async def CheckMessage(message):
         await message.delete()
         return
 
-    fullmsg = emoji.demojize(message.content, delimiters=("<:", ":00000>"))
+    fullmsg = message.content
 
     print("fullmsg   " + fullmsg)
-
-    # emojicount = len(re.findall(r"<:\w*:\d*>", fullmsg))
-    # print(emojicount)
-    # print(re.sub(r"<:\w*:\d*>", "", fullmsg))
-
-    # if emojicount > 10:
-    #     await message.delete()
-    #     return
-    # elif len(re.sub(r"<:\w*:\d*>", "", fullmsg)) > 200:
-    #     await message.delete()
-    #     return
 
     needDelete = None
 
@@ -205,7 +194,22 @@ async def CheckMessage(message):
         if black in message.content:
             message.content = message.content.replace(black, "##")
             needDelete = True
+
+    
     if needDelete:
+        #user정보의 필터링 횟수를 확인
+
+
+        #필터링 횟수에 플러스1
+
+
+
+        #필터링횟수에 따른 타임아웃 적용
+
+
+
+
+        #필터링 된 메세지 정보에 해당 유저의 필터링 횟수도 보여줌
         await message.delete()
         await message.channel.send(
             f"nick : {message.author.display_name}\n" + message.content
