@@ -191,12 +191,14 @@ async def CheckMessage(message):
 
     needDelete = None
 
+    black_ctx = open("filt_ctx.txt", "w",encoding="UTF-8")
+    black_ctx.write(message.content)
+    black_ctx.close()
+
     for black in blackwordlist:
 
         if black in message.content:
-            black_ctx = open("filt_ctx.txt", "w",encoding="UTF-8")
-            black_ctx.write(message.content)
-            black_ctx.close()
+            
             message.content = message.content.replace(black, "##")
             needDelete = True
 
