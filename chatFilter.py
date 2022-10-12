@@ -41,6 +41,7 @@ elif testcheck == "main":
 else:
     mode_error = open("errorinfo.txt", "w")
     mode_error.write("bootmode.txt의 내용이 'main'이거나 'test'가 아님")
+    mode_error.close()
 
 cur = database.cursor()
 
@@ -98,7 +99,7 @@ async def CheckTimeAndManagePermission(role, perms):
 
     if (hour >= 1) and (hour < 6) and (canspeak == None or canspeak == True):
         print("speak off")
-        perms.update(speak=False, connect=True)
+        perms.update(speak=False, connect=False)
         speak = 0
     elif (hour < 1) or (hour > 6) and (canspeak == None or canspeak == False):
         print("speak on")
@@ -191,7 +192,11 @@ async def CheckMessage(message):
     needDelete = None
 
     for black in blackwordlist:
+
         if black in message.content:
+            black_ctx = open("filt_ctx.txt", "w",encoding="UTF-8")
+            black_ctx.write(message.content)
+            black_ctx.close()
             message.content = message.content.replace(black, "##")
             needDelete = True
 
