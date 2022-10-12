@@ -10,6 +10,7 @@ import random
 import asyncio
 import emoji
 import pymysql
+import arrow
 
 
 testcheck = open("secret/bootmode.txt", "r").read()
@@ -51,7 +52,7 @@ intents = nextcord.Intents.all()
 tokenfile = open("secret/token.json", "r", encoding="UTF-8")
 
 bot = commands.Bot(command_prefix=["c!", "C!"], intents=intents)
-
+daily_reboot=0
 
 @bot.event
 async def on_ready():
@@ -61,7 +62,7 @@ async def on_ready():
     print("-----------")
     await bot.change_presence(
         status=nextcord.Status.online,
-        activity=nextcord.Game("주말 기다리기를 매주"),
+        activity=nextcord.Game(f"오늘의 {daily_reboot}번째 부팅"),
     )
     bot.loop.create_task(job())
 
@@ -86,6 +87,8 @@ async def job():
 async def CheckTimeAndManagePermission(role, perms):
     global canspeak
     global cantalk
+
+    currentTime=arrow.now('Asia/Seoul')
 
     currentTime = datetime.now()
     hour = currentTime.hour
@@ -428,5 +431,20 @@ if testmode:
     token = json.load(tokenfile)["testtoken"]
 else:
     token = json.load(tokenfile)["token"]
+
+now=datetime.now()
+
+if os.path.isfile(f"{now.year}{now.month}{now.day}"):
+    mode_error = open(f"{now.year}{now.month}{now.day}", "r")
+    daily_reboot=int(mode_error.read())
+    daily_reboot+=1
+    mode_error.close()
+else:
+    mode_error = open(f"{now.year}{now.month}{now.day}", "w")
+    mode_error.write("1")
+    daily_reboot=1
+    mode_error.close()
+
+
 
 bot.run(token)
