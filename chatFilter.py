@@ -437,8 +437,10 @@ now=arrow.now("Asia/Seoul")
 if os.path.isfile(f"{now.year}{now.month}{now.day}"):
     mode_error = open(f"{now.year}{now.month}{now.day}", "r")
     daily_reboot=int(mode_error.read())
-    daily_reboot+=1
     mode_error.close()
+    
+    daily_reboot+=1
+    
     mode_error = open(f"{now.year}{now.month}{now.day}", "w")
     mode_error.write(f"{daily_reboot}")
     mode_error.close()
