@@ -439,6 +439,9 @@ if os.path.isfile(f"{now.year}{now.month}{now.day}"):
     daily_reboot=int(mode_error.read())
     daily_reboot+=1
     mode_error.close()
+    mode_error = open(f"{now.year}{now.month}{now.day}", "w")
+    mode_error.write(f"{daily_reboot}")
+    mode_error.close()
 else:
     mode_error = open(f"{now.year}{now.month}{now.day}", "w")
     mode_error.write("1")
