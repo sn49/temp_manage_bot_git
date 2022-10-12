@@ -64,7 +64,7 @@ async def on_ready():
         status=nextcord.Status.online,
         activity=nextcord.Game(f"{now.year}-{now.month}-{now.day}의 {daily_reboot}번째 부팅"),
     )
-    bot.loop.create_task(job())
+    # bot.loop.create_task(job())
 
 
 canspeak = None
