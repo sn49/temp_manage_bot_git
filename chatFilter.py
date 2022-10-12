@@ -62,7 +62,7 @@ async def on_ready():
     print("-----------")
     await bot.change_presence(
         status=nextcord.Status.online,
-        activity=nextcord.Game(f"오늘의 {daily_reboot}번째 부팅"),
+        activity=nextcord.Game(f"{now.year}-{now.month}-{now.day}의 {daily_reboot}번째 부팅"),
     )
     bot.loop.create_task(job())
 
