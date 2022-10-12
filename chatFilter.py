@@ -432,7 +432,7 @@ if testmode:
 else:
     token = json.load(tokenfile)["token"]
 
-now=datetime.now()
+now=arrow.now("Asia/Seoul")
 
 if os.path.isfile(f"{now.year}{now.month}{now.day}"):
     mode_error = open(f"{now.year}{now.month}{now.day}", "r")
