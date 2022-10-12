@@ -100,11 +100,11 @@ async def CheckTimeAndManagePermission(role, perms):
     print(hour)
     print(minute)
 
-    if (hour >= 1) and (hour < 6) and (canspeak == None or canspeak == True):
+    if (hour >= 2) and (hour < 6) and (canspeak == None or canspeak == True):
         print("speak off")
         perms.update(speak=False, connect=False)
         speak = 0
-    elif (hour < 1) or (hour > 6) and (canspeak == None or canspeak == False):
+    elif (hour < 2) or (hour > 6) and (canspeak == None or canspeak == False):
         print("speak on")
         perms.update(speak=True, connect=True)
         speak = 1
@@ -438,7 +438,7 @@ if os.path.isfile(f"{now.year}{now.month}{now.day}"):
     mode_error = open(f"{now.year}{now.month}{now.day}", "r")
     daily_reboot=int(mode_error.read())
     mode_error.close()
-    
+
     daily_reboot+=1
     
     mode_error = open(f"{now.year}{now.month}{now.day}", "w")
