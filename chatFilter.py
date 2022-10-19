@@ -148,19 +148,21 @@ async def on_member_join(member):
     await member.add_roles(testrole)
 
     channel = await member.guild.create_text_channel("입장채널")
+    print(channel)
     selfbot = nextcord.utils.get(member.guild.members, id=bot.user.id)
     await channel.set_permissions(member, read_messages=True)
     await channel.set_permissions(selfbot, read_messages=True)
     await channel.set_permissions(member.guild.default_role, read_messages=False)
-
+    testinfo[str(channel.id)]=None
     testcode = random.sample(string.ascii_letters, 10)
+    testinfo[str(channel.id)]={"testcode":testcode,"userid":member.id}
 
     teststring = ""
     for c in testcode:
-        teststring += "c"
+        teststring += c
 
     sql = (
-        f"insert into entry_test (discordid,test_string) values {member.id,teststring}"
+        f"insert into entry_test (discordid,channelid,test_string) values {member.id,channel.id,teststring}"
     )
 
     cur.execute(sql)
@@ -235,7 +237,7 @@ async def on_message_edit(before, after):
 @bot.event
 async def on_message(tempmessage):
 
-    if re.match("[a-z]{1}", tempmessage.content) and len(tempmessage.content) == 1:
+    if re.match("[A-z]{1}", tempmessage.content) and len(tempmessage.content) == 1:
 
         channelid = tempmessage.channel.id
 
@@ -248,12 +250,25 @@ async def on_message(tempmessage):
             ):
                 del testinfo[str(channelid)]["testcode"][0]
                 print(testinfo[str(channelid)])
+                await tempmessage.channel.send(f"{len(testinfo[str(channelid)]['testcode'])}자 남음")
 
-                if len(testinfo[str(channelid)]["testcode"]) == 0:
+                print(len(testinfo[str(channelid)]['testcode']))
+                if len(testinfo[str(channelid)]['testcode']) == 0:
                     testrole = nextcord.utils.get(tempmessage.guild.roles, name="입장테스트")
-                    await bot.get_user(testinfo[str(channelid)]["userid"]).remove_roles(
-                        testrole
+                    print(testrole)
+
+                    passroles=tempmessage.author.roles
+
+                    for role in passroles:
+                        if role.name=="입장테스트":
+                            await role.delete()
+
+                    sql = (
+                        f"delete from entry_test where discordid={tempmessage.author.id}"
                     )
+
+                    cur.execute(sql)
+
                     del testinfo[str(channelid)]
                     await bot.get_channel(channelid).delete()
 
@@ -261,6 +276,12 @@ async def on_message(tempmessage):
                         f"insert into user (discordid) values ({tempmessage.author.id})"
                     )
 
+                    cur.execute(sql)
+                else:
+                    sql = (
+                        f"update entry_test set remain_char={len(testinfo[str(channelid)]['testcode'])} where discordid={tempmessage.author.id}"
+                    )
+                    print(sql)
                     cur.execute(sql)
 
             else:
@@ -451,5 +472,5 @@ else:
     mode_error.close()
 
 
-
+print(token)
 bot.run(token)
