@@ -14,7 +14,7 @@ import arrow
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
-
+import money
 
 
 
@@ -284,6 +284,27 @@ deleteCount = {}
 
 
 tempvoice = False
+
+
+@bot.command()
+async def 출석(ctx):
+    nowtime=arrow.now("Asia/Seoul")
+    
+    moneydir=db.reference(f"{DBroot}/users/'{ctx.author.id}'")
+
+    userdata=moneydir.get()
+    print(f"userdata {userdata}")
+    result=[]
+
+    if "dayget" not in userdata:
+        result=money.dayget(moneydir,userdata)
+    else:
+        if userdata["dayget"]!=f"{nowtime.date().year}-{nowtime.date().month}-{nowtime.date().day}":
+            result=money.dayget(moneydir,userdata)
+        else:
+            await ctx.send("이미 오늘은 얻었습니다.")
+
+
 
 
 @bot.command()
