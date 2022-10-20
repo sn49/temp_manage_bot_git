@@ -11,43 +11,39 @@ import asyncio
 import emoji
 import pymysql
 import arrow
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import db
+
+
 
 
 testcheck = open("secret/bootmode.txt", "r").read()
 
-sqlinfo = open("secret/mysql.json", "r")
+cred = credentials.Certificate('secret/firebase-admin.json')
+DBroot=""
+
+
+sqlinfo = open("secret/firebase_url.json", "r")
 sqlcon = json.load(sqlinfo)
 
 
 if testcheck == "test":
     testmode = True
-    database = pymysql.connect(
-        user=sqlcon["user"],
-        host=sqlcon["host"],
-        db=sqlcon["testdb"],
-        charset=sqlcon["charset"],
-        password=sqlcon["password"],
-        autocommit=True,
-    )
+    DBroot="testDB"
+    
 elif testcheck == "main":
     testmode = False
-    database = pymysql.connect(
-        user=sqlcon["user"],
-        host=sqlcon["host"],
-        db=sqlcon["db"],
-        charset=sqlcon["charset"],
-        password=sqlcon["password"],
-        autocommit=True,
-    )
+    DBroot="mainDB"
 else:
     mode_error = open("errorinfo.txt", "w")
     mode_error.write("bootmode.txt의 내용이 'main'이거나 'test'가 아님")
     mode_error.close()
 
-cur = database.cursor()
+firebase_admin.initialize_app(cred,{
+    'databaseURL' : sqlcon["DBurl"]
+})
 
-
-rootname = "data/server" 
 intents = nextcord.Intents.all()
 tokenfile = open("secret/token.json", "r", encoding="UTF-8")
 
@@ -137,39 +133,25 @@ async def CheckTimeAndManagePermission(role, perms):
     await role.edit(permissions=perms)
 
 
-testinfo = {}
-
 
 @bot.event
 async def on_member_join(member):
 
-    global testinfo
-    testrole = nextcord.utils.get(member.guild.roles, name="입장테스트")
-    await member.add_roles(testrole)
-
     channel = await member.guild.create_text_channel("입장채널")
-    print(channel)
     selfbot = nextcord.utils.get(member.guild.members, id=bot.user.id)
+
     await channel.set_permissions(member, read_messages=True)
     await channel.set_permissions(selfbot, read_messages=True)
     await channel.set_permissions(member.guild.default_role, read_messages=False)
-    testinfo[str(channel.id)]=None
+
+
     testcode = random.sample(string.ascii_letters, 10)
-    testinfo[str(channel.id)]={"testcode":testcode,"userid":member.id}
 
-    teststring = ""
-    for c in testcode:
-        teststring += c
+    direct = db.reference(f"{DBroot}/entry_test/'{member.id}'")
 
-    sql = (
-        f"insert into entry_test (discordid,channelid,test_string) values {member.id,channel.id,teststring}"
-    )
+    direct.update({"channelID":channel.id,"test_string":testcode})
 
-    cur.execute(sql)
-
-    print(testinfo)
-
-    await channel.send(f"{testinfo[str(channel.id)]['testcode']} 순서대로 채팅")
+    await channel.send(f"{testcode} 순서대로 채팅(1글자씩)")
 
 
 async def CheckMessage(message):
@@ -241,54 +223,41 @@ async def on_message(tempmessage):
 
         channelid = tempmessage.channel.id
 
-        # sql = f"select "
 
-        if str(channelid) in testinfo.keys():
-            if (
-                testinfo[str(channelid)]["testcode"][0] == tempmessage.content
-                and testinfo[str(channelid)]["userid"] == tempmessage.author.id
-            ):
-                del testinfo[str(channelid)]["testcode"][0]
-                print(testinfo[str(channelid)])
-                await tempmessage.channel.send(f"{len(testinfo[str(channelid)]['testcode'])}자 남음")
+        direct=db.reference(f"{DBroot}/entry_test/'{tempmessage.author.id}'")
 
-                print(len(testinfo[str(channelid)]['testcode']))
-                if len(testinfo[str(channelid)]['testcode']) == 0:
-                    testrole = nextcord.utils.get(tempmessage.guild.roles, name="입장테스트")
-                    print(testrole)
+        entry_test_data=direct.get()
+        if entry_test_data!=None:
+            if entry_test_data["test_string"][0]==tempmessage.content:
+                print(entry_test_data)
+                del entry_test_data["test_string"][0]
+                print(entry_test_data)
 
-                    passroles=tempmessage.author.roles
+                direct.update({"test_string":entry_test_data["test_string"]})
 
-                    for role in passroles:
-                        if role.name=="입장테스트":
-                            await role.delete()
+                await tempmessage.channel.send(f"{len(entry_test_data['test_string'])}자 남음")
 
-                    sql = (
-                        f"delete from entry_test where discordid={tempmessage.author.id}"
-                    )
+                if len(entry_test_data['test_string']) == 0:
 
-                    cur.execute(sql)
 
-                    del testinfo[str(channelid)]
+                    testrole = nextcord.utils.get(tempmessage.guild.roles, name="멤버")
+                    await tempmessage.author.add_roles(testrole)
+
+                    entry_test_dir=db.reference(f"{DBroot}/entry_test/'{tempmessage.author.id}'")
+
+                    entry_test_dir.delete()
+
+
                     await bot.get_channel(channelid).delete()
 
-                    sql = (
-                        f"insert into user (discordid) values ({tempmessage.author.id})"
-                    )
+                    entry_dir=db.reference(f"{DBroot}/users/'{tempmessage.author.id}'")
 
-                    cur.execute(sql)
-                else:
-                    sql = (
-                        f"update entry_test set remain_char={len(testinfo[str(channelid)]['testcode'])} where discordid={tempmessage.author.id}"
-                    )
-                    print(sql)
-                    cur.execute(sql)
+                    entry_dir.update({"point":0,"activity_level":1,"reinforce_level":1,"money":0})
 
             else:
                 await tempmessage.channel.send("문자를 틀렸거나 관리자가 대신 입력 할 수 없습니다.")
 
     else:
-        print("test")
         await CheckMessage(tempmessage)
 
         await bot.process_commands(tempmessage)
@@ -299,31 +268,6 @@ async def on_message(tempmessage):
             or "c!" in tempmessage.content
         ):
             return
-
-        now = datetime.now()
-
-        directory = f"{rootname}{tempmessage.guild.id}"
-        filename = f"{directory}/channel{tempmessage.channel.id}.json"
-
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-
-        jsonData = {}
-
-        date = f"{now.year}-{now.month}-{now.day}-{now.hour}-{now.minute}"
-
-        if os.path.isfile(filename):
-            with open(filename, "r") as datafile:
-                jsonData = json.load(datafile)
-
-        keyname = f"user{tempmessage.author.id}"
-
-        jsonData[keyname] = date
-
-        with open(filename, "w") as newFile:
-            json.dump(jsonData, newFile)
-
-        return
 
 
 @bot.event
@@ -340,15 +284,6 @@ deleteCount = {}
 
 
 tempvoice = False
-
-
-@bot.command()
-async def regi(ctx):
-    sql = f"insert into user (discordid) values ({ctx.author.id})"
-
-    cur.execute(sql)
-
-    await ctx.send("가입 완료")
 
 
 @bot.command()
@@ -394,6 +329,18 @@ async def 정보(ctx):
         """
     )
 
+
+@bot.command()
+async def 등록(ctx):
+    passid=968004898262220800
+
+    users=ctx.guild.members
+
+    for user in users:
+        if not user.bot:
+            if user.id!=passid:
+                user_dir=db.reference(f"{DBroot}/users/'{user.id}'")
+                user_dir.update({"point":0,"activity_level":1,"reinforce_level":1,"money":0})
 
 @bot.command()
 async def 집(ctx):
