@@ -1,14 +1,17 @@
 import random
+import math
 
 level = 1
 
 
-
-
-try_count=0
-
 #대충 랜덤 뭐시기로 30렙 될때까지 while문 돌린다는 내용
-while level!=30:
+def reinforce():
+    
+    #비용 계산
+    cost=math.floor(1000*(50*level)^(0.05*level))
+
+    #비용이 부족하면 return -100
+
     #확률 계산
     up4 = 0
     up2 = 0
@@ -66,10 +69,7 @@ while level!=30:
     elif res<up4+up2+up+notchange+down1:
         level-=1
     elif res<up4+up2+up+notchange+down1+crack:
-
-        #강화 불가 상태로 바꾸기
-
-        #1~9 > 1레벨로, 10~19 > 10레벨로, 20>29 > 20레벨로(def fix .....으로 이동)
+        #1~9 > 1레벨로, 10~19 > 10레벨로, 20>29 > 20레벨로
         if level<10:
             level=1
         elif level<20:
@@ -77,15 +77,9 @@ while level!=30:
         elif level<30:
             level=20
         
-        
     elif res<up4+up2+up+notchange+down1+crack+destroy:
-        level=1
+        #파괴해서 레벨 0으로
+        level=0
     
-    try_count+=1
 
 
-
-
-
-#대충 총 트라이 횟수 알려주는 내용
-print(try_count)

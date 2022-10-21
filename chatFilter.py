@@ -1,3 +1,4 @@
+from email.policy import default
 import nextcord
 from nextcord.ext import commands, tasks
 from nextcord.utils import get
@@ -15,6 +16,7 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
 import money
+import reinforce
 
 
 
@@ -287,6 +289,66 @@ tempvoice = False
 
 
 @bot.command()
+async def 상점(ctx,id):
+    storedir=db.reference(f"{DBroot}/store")
+
+    items=storedir.get()
+
+    defaultstore={
+        [
+            {"name":"강화할수 있는 물건 +1","amount":200,"price":5000,"item_type":"can_reinforce_item"}
+            ]
+        }
+    if id==None:
+        if items==None:
+            storedir.update(defaultstore)
+            await ctx.send(defaultstore)
+        else:
+            await ctx.send(items)
+    else:
+        id=int(id)
+        name=items[id-1]["name"]
+        price=items[id-1]["price"]
+        amount=items[id-1]["amount"]
+        item_type=items[id-1]["item_type"]
+
+        userdir=db.reference(f"{DBroot}/users/'{ctx.author.id}'")
+
+        
+        userinfo=userdir.get()
+
+        if price>userinfo["money"]:
+            await ctx.send(f"{price-userinfo['money']}money가 부족하여 {name} 구매 불가합니다.")
+            return
+
+        if "+" in name:
+            name=name.split("+")
+
+        if len(name)==2:
+            if "inventory" in userinfo:
+                if "can_reinforce_item" in userinfo["inventory"]:
+                    if userinfo["inventory"]["can_reinforce_item"]==0:
+                        userdir.update({"money":userinfo['money']-price,"inventory":{"can_reinforce_item":int(name[1])}})
+                    else:
+                        await ctx.send("강화할수 있는 물건을 이미 가지고 있습니다.")
+                else:
+                    userdir.update({"money":userinfo['money']-price,"inventory":{"can_reinforce_item":int(name[1])}})
+            else:
+                userdir.update({"money":userinfo['money']-price,"inventory":{"can_reinforce_item":int(name[1])}})
+        else:
+            await ctx.send("추후 구매 가능 예정")
+
+        
+
+
+
+@bot.command()
+async def 강화(ctx):
+    moneydir=db.reference(f"{DBroot}/users/'{ctx.author.id}'")
+
+    reinforce.reinforce()
+
+@bot.command()
 async def 출석(ctx):
     nowtime=arrow.now("Asia/Seoul")
     
@@ -296,6 +358,8 @@ async def 출석(ctx):
     print(f"userdata {userdata}")
     result=[]
 
+
+
     if "dayget" not in userdata:
         result=money.dayget(moneydir,userdata)
     else:
@@ -303,8 +367,15 @@ async def 출석(ctx):
             result=money.dayget(moneydir,userdata)
         else:
             await ctx.send("이미 오늘은 얻었습니다.")
+            return
+    await ctx.send(f"grade : {result[1]}, {result[0]}money 획득")
 
-
+@bot.command()
+async def 정보(ctx):
+    userdir=db.reference(f"{DBroot}/users/'{ctx.author.id}'")
+    userinfo=userdir.get()
+    
+    await ctx.send(userinfo)
 
 
 @bot.command()
@@ -337,7 +408,7 @@ async def 제한음챗(ctx):
 
 
 @bot.command()
-async def 정보(ctx):
+async def 서버정보(ctx):
 
     await ctx.send(
         f"""
