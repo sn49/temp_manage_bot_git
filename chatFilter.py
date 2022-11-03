@@ -22,29 +22,36 @@ import reinforce
 
 testcheck = open("secret/bootmode.txt", "r").read()
 
-cred = credentials.Certificate('secret/firebase-admin.json')
-DBroot=""
 
 
-sqlinfo = open("secret/firebase_url.json", "r")
+sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
 
 
+
+
+host_type=""
 if testcheck == "test":
     testmode = True
-    DBroot="testDB"
-    
+    host_type="test_host"
+
 elif testcheck == "main":
     testmode = False
-    DBroot="mainDB"
+    host_type="host"
 else:
     mode_error = open("errorinfo.txt", "w")
     mode_error.write("bootmode.txt의 내용이 'main'이거나 'test'가 아님")
     mode_error.close()
 
-firebase_admin.initialize_app(cred,{
-    'databaseURL' : sqlcon["DBurl"]
-})
+database = pymysql.connect(
+    user=sqlcon["user"],
+    host=sqlcon[host_type],
+    db=sqlcon["db"],
+    charset=sqlcon["charset"],
+    password=sqlcon["password"],
+    autocommit=True,
+)
+cur = database.cursor()
 
 intents = nextcord.Intents.all()
 tokenfile = open("secret/token.json", "r", encoding="UTF-8")
@@ -69,19 +76,20 @@ canspeak = None
 cantalk = None
 
 
-async def job():
+#음성채팅, 텍스트채팅
+# async def job():
 
-    guild = await bot.fetch_guild(837200416303087616)
-    role = guild.default_role
-    perms = role.permissions
+#     guild = await bot.fetch_guild(837200416303087616)
+#     role = guild.default_role
+#     perms = role.permissions
 
-    await CheckTimeAndManagePermission(role, perms)
+#     await CheckTimeAndManagePermission(role, perms)
 
-    while True:
-        await asyncio.sleep(60)
-        await CheckTimeAndManagePermission(role, perms)
+#     while True:
+#         await asyncio.sleep(60)
+#         await CheckTimeAndManagePermission(role, perms)
 
-
+#현재 작동하지 않는 시간에 따른 권한 제한
 async def CheckTimeAndManagePermission(role, perms):
     global canspeak
     global cantalk
@@ -134,8 +142,11 @@ async def CheckTimeAndManagePermission(role, perms):
 
     await role.edit(permissions=perms)
 
+#테스트 멤버가 나갔을때 입장테스트 DB 삭제
 
 
+
+#멤버가 들어왔을때 입장테스트 DB 추가
 @bot.event
 async def on_member_join(member):
 
@@ -146,12 +157,18 @@ async def on_member_join(member):
     await channel.set_permissions(selfbot, read_messages=True)
     await channel.set_permissions(member.guild.default_role, read_messages=False)
 
+    length=10
 
-    testcode = random.sample(string.ascii_letters, 10)
+    testcode = random.sample(string.ascii_letters, length)
 
-    direct = db.reference(f"{DBroot}/entry_test/'{member.id}'")
+    teststring=""
 
-    direct.update({"channelID":channel.id,"test_string":testcode})
+    for i in testcode:
+        teststring+=i
+
+    sql=f"insert into entry_test values ({member.id},'{teststring}',{length})"
+    cur.execute(sql)
+    
 
     await channel.send(f"{testcode} 순서대로 채팅(1글자씩)")
 
@@ -225,37 +242,54 @@ async def on_message(tempmessage):
 
         channelid = tempmessage.channel.id
 
+        #입장테스트 유저 데이터를 불러옴
+        sql=f"select test_string,remain_char from entry_test where discordid={tempmessage.author.id}"
+        cur.execute(sql)
 
-        direct=db.reference(f"{DBroot}/entry_test/'{tempmessage.author.id}'")
+        entry_test_data=cur.fetchone()
 
-        entry_test_data=direct.get()
+        #입장 테스트 유저일때
         if entry_test_data!=None:
-            if entry_test_data["test_string"][0]==tempmessage.content:
+            remain_char=entry_test_data[2]
+
+            if entry_test_data[1][10-remain_char]==tempmessage.content:
+
+                
+                #remain_char-1 DB에 반영
+
+                #remain_chara-1 쿼리
                 print(entry_test_data)
                 del entry_test_data["test_string"][0]
                 print(entry_test_data)
 
+
+                #remain_chara-1 쿼리 실행
                 direct.update({"test_string":entry_test_data["test_string"]})
 
-                await tempmessage.channel.send(f"{len(entry_test_data['test_string'])}자 남음")
+                
 
+                #입장테스트를 통과 했을때
                 if len(entry_test_data['test_string']) == 0:
-
-
                     testrole = nextcord.utils.get(tempmessage.guild.roles, name="멤버")
                     await tempmessage.author.add_roles(testrole)
 
+
+                    #entry_test db에서 멤버 행 삭제 쿼리
                     entry_test_dir=db.reference(f"{DBroot}/entry_test/'{tempmessage.author.id}'")
 
+                    #쿼리 실행
                     entry_test_dir.delete()
 
 
                     await bot.get_channel(channelid).delete()
 
+                    #멤버 insert 쿼리
                     entry_dir=db.reference(f"{DBroot}/users/'{tempmessage.author.id}'")
 
+                    #멤버 insert 쿼리 실행
                     entry_dir.update({"point":0,"activity_level":1,"reinforce_level":1,"money":0})
-
+                else:
+                    await tempmessage.channel.send(f"{len(entry_test_data['test_string'])}자 남음")
             else:
                 await tempmessage.channel.send("문자를 틀렸거나 관리자가 대신 입력 할 수 없습니다.")
 
@@ -290,9 +324,13 @@ tempvoice = False
 
 @bot.command()
 async def 상점(ctx,id):
+    await ctx.send("준비중입니다. 11월 예정")
+    return
+
     storedir=db.reference(f"{DBroot}/store")
 
     items=storedir.get()
+
 
     defaultstore={
         [
@@ -344,9 +382,55 @@ async def 상점(ctx,id):
 
 @bot.command()
 async def 강화(ctx):
+    await ctx.send("준비중입니다. 11월 예정")
+    return
     moneydir=db.reference(f"{DBroot}/users/'{ctx.author.id}'")
 
     reinforce.reinforce()
+
+@bot.command()
+async def 베팅(ctx,mode=None,amount=-50000):
+    await ctx.send("준비중입니다.")
+    return
+
+
+    percent=0
+    multiple=0
+
+    
+    amount=int(amount)
+
+    if amount<=0 and mode!="7":
+        await ctx.send("0money 이하 베팅 불가")
+        return
+
+    if mode=="1":
+        percent=50
+        multiple=2.2
+    elif mode=="2":
+        percent=30
+        multiple=4
+    elif mode=="3":
+        percent=10
+        multiple=12
+    elif mode=="7":
+        percent=40
+        multiple=2.7
+        amount=havemoney
+    else:
+        await ctx.send("잘못된 모드입력입니다.")
+        return
+
+    dice=random.random()*100
+
+    if dice<percent:
+        await ctx.send(f"{amount}money {multiple}배 불리기 성공!")
+        #로그 작성
+    else:
+        await ctx.send(f"{amount}money {multiple}배 불리기 실패!")
+        #로그 작성
+        
+    
 
 @bot.command()
 async def 출석(ctx):
