@@ -51,7 +51,7 @@ else:
     mode_error.write("bootmode.txt의 내용이 'main'이거나 'test'가 아님")
     mode_error.close()
 
-print(servername)
+print(f"servername = {servername}")
 
 database = pymysql.connect(
     user=sqlcon["user"],
