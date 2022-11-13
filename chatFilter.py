@@ -11,18 +11,20 @@ import random
 import asyncio
 import emoji
 import pymysql
+import pymssql
 import arrow
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
 import money
 import reinforce
+import math
 
 
 
 testcheck = open("secret/bootmode.txt", "r").read()
 
-
+version="V-22-11-14-01"
 
 sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
@@ -30,14 +32,25 @@ sqlcon = json.load(sqlinfo)
 
 
 
+server=""
+username=""
+password=""
+database=""
+
+
+
+
 host_type=""
+dbname=""
+username=""
+servername=""
 if testcheck == "test":
     testmode = True
-    host_type="test_host"
+    servername=sqlcon["test_server"]
 
 elif testcheck == "main":
     testmode = False
-    host_type="host"
+    servername=sqlcon["main_server"]
 else:
     mode_error = open("errorinfo.txt", "w")
     mode_error.write("bootmode.txt의 내용이 'main'이거나 'test'가 아님")
@@ -45,13 +58,15 @@ else:
 
 database = pymysql.connect(
     user=sqlcon["user"],
-    host=sqlcon[host_type],
-    db=sqlcon["db"],
-    charset=sqlcon["charset"],
+    host=servername,
+    database=sqlcon["db"],
     password=sqlcon["password"],
+    charset=sqlcon["charset"],
     autocommit=True,
 )
-cur = database.cursor()
+
+
+cur = database.cursor() # 쿼리 생성과 결과 조회를 위해 사용
 
 intents = nextcord.Intents.all()
 tokenfile = open("secret/token.json", "r", encoding="UTF-8")
@@ -258,13 +273,11 @@ async def on_message(tempmessage):
                 #remain_char-1 DB에 반영
 
                 #remain_chara-1 쿼리
-                print(entry_test_data)
-                del entry_test_data["test_string"][0]
-                print(entry_test_data)
+                sql=f"update entry_test set remain_char=remain_char-1 where discordid={tempmessage.autuor.id}"
 
 
                 #remain_chara-1 쿼리 실행
-                direct.update({"test_string":entry_test_data["test_string"]})
+                cur.execute(sql)
 
                 
 
@@ -275,19 +288,19 @@ async def on_message(tempmessage):
 
 
                     #entry_test db에서 멤버 행 삭제 쿼리
-                    entry_test_dir=db.reference(f"{DBroot}/entry_test/'{tempmessage.author.id}'")
+                    sql=f"delete from entry_test where discordid={tempmessage.author.id}"
 
                     #쿼리 실행
-                    entry_test_dir.delete()
+                    cur.execute(sql)
 
 
                     await bot.get_channel(channelid).delete()
 
                     #멤버 insert 쿼리
-                    entry_dir=db.reference(f"{DBroot}/users/'{tempmessage.author.id}'")
+                    sql=f"insert into user (discordid) values ({tempmessage.author.id})"
 
                     #멤버 insert 쿼리 실행
-                    entry_dir.update({"point":0,"activity_level":1,"reinforce_level":1,"money":0})
+                    cur.execute(sql)
                 else:
                     await tempmessage.channel.send(f"{len(entry_test_data['test_string'])}자 남음")
             else:
@@ -390,15 +403,15 @@ async def 강화(ctx):
 
 @bot.command()
 async def 베팅(ctx,mode=None,amount=-50000):
-    await ctx.send("준비중입니다.")
-    return
-
-
     percent=0
     multiple=0
 
     
     amount=int(amount)
+
+    sql=f"select money from user where discordid={ctx.author.id}"
+    cur.execute(sql)
+    havemoney=cur.fetchone()[0]
 
     if amount<=0 and mode!="7":
         await ctx.send("0money 이하 베팅 불가")
@@ -414,6 +427,7 @@ async def 베팅(ctx,mode=None,amount=-50000):
         percent=10
         multiple=12
     elif mode=="7":
+        
         percent=40
         multiple=2.7
         amount=havemoney
@@ -421,45 +435,83 @@ async def 베팅(ctx,mode=None,amount=-50000):
         await ctx.send("잘못된 모드입력입니다.")
         return
 
+    if havemoney<amount:
+        await ctx.send(f"{amount-havemoney}모아가 부족합니다.")
+        return
+
+
+    sql=f"update user set money=money-{amount} where discordid={ctx.author.id}"
+    print(sql)
+    cur.execute(sql)
+
     dice=random.random()*100
 
+    log=f"모드 {mode}를 사용하여 {percent}%로 {amount}모아를 {multiple}배 불리기 "
+
     if dice<percent:
-        await ctx.send(f"{amount}money {multiple}배 불리기 성공!")
-        #로그 작성
+        log+="성공함"
+        sql=f"update user set money=money+{math.floor(amount*multiple)} where discordid={ctx.author.id}"
     else:
-        await ctx.send(f"{amount}money {multiple}배 불리기 실패!")
-        #로그 작성
-        
+        log+="실패함"
     
+    await ctx.send(log)
+      
+    sql=f"insert into log (discordid,version,command,discription) values ({ctx.author.id},'{version}','베팅','{log}')"
+
+    cur.execute(sql)
 
 @bot.command()
 async def 출석(ctx):
     nowtime=arrow.now("Asia/Seoul")
     
-    moneydir=db.reference(f"{DBroot}/users/'{ctx.author.id}'")
+    #제일 최근 출첵 날짜를 불러옴
+    sql=f"select today_free_get from user where discordid={ctx.author.id}"
 
-    userdata=moneydir.get()
-    print(f"userdata {userdata}")
-    result=[]
+    cur.execute(sql)
 
+    getdate=cur.fetchone()[0]
 
+    tempbot_date=(arrow.now("Asia/Seoul").datetime-timedelta(hours=6)).date()
 
-    if "dayget" not in userdata:
-        result=money.dayget(moneydir,userdata)
+    print(tempbot_date)
+    
+    date_string=f"{tempbot_date.year}-{tempbot_date.month}-{tempbot_date.day}"
+
+    #(현재시간 - 6시간)의 날짜와 획득날짜를 비교해서 같으면 return, 다르면 재화 지급
+    if date_string!=getdate:
+        result=money.dayget()
+
+        sql=f"update user set money=money+{result[0]},today_free_get='{date_string}' where discordid={ctx.author.id}"
+        cur.execute(sql)
+
+        log=f"grade : {result[1]}, {result[0]}money 획득"
+
+        await ctx.send(log)
+
+        cur.execute(sql)
+
+        
+
+        sql=f"insert into log (discordid,version,command,discription) values ({ctx.author.id},'{version}','출석','{log}')"
+        print(sql)
+        cur.execute(sql)
     else:
-        if userdata["dayget"]!=f"{nowtime.date().year}-{nowtime.date().month}-{nowtime.date().day}":
-            result=money.dayget(moneydir,userdata)
-        else:
-            await ctx.send("이미 오늘은 얻었습니다.")
-            return
-    await ctx.send(f"grade : {result[1]}, {result[0]}money 획득")
+        await ctx.send("이미 오늘은 얻었습니다. 리셋시간 : 오전6시")
+        return
+
+    
+    
 
 @bot.command()
 async def 정보(ctx):
-    userdir=db.reference(f"{DBroot}/users/'{ctx.author.id}'")
-    userinfo=userdir.get()
+
+    sql=f"select point,activity_level,reinforce_level,money,today_free_get from user where discordid={ctx.author.id}"
+
+    cur.execute(sql)
+
+    result=cur.fetchone()
     
-    await ctx.send(userinfo)
+    await ctx.send(f"활동 포인트 : {result[0]}P\n활동 레벨 : {result[1]}레벨\n강화 레벨 : {result[2]}레벨\n{result[3]}모아 보유중\n마지막 출석 날짜 : {result[4]}")
 
 
 @bot.command()
@@ -512,11 +564,22 @@ async def 등록(ctx):
 
     users=ctx.guild.members
 
+    regimember=[]
+
     for user in users:
         if not user.bot:
             if user.id!=passid:
-                user_dir=db.reference(f"{DBroot}/users/'{user.id}'")
-                user_dir.update({"point":0,"activity_level":1,"reinforce_level":1,"money":0})
+                joindex=0
+                for mem in regimember:
+                    if user.joined_at > mem[1]:
+                        joindex+=1
+                
+                regimember.insert(joindex,[user.id,user.joined_at])
+
+    print(regimember)
+    for mem in regimember:  
+        sql=f"insert into user (discordid) values ({mem[0]})"
+        cur.execute(sql)
 
 @bot.command()
 async def 집(ctx):

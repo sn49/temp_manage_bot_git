@@ -1,9 +1,7 @@
 import random
 import arrow
 
-def dayget(moneydir,userdata):
-    nowtime=arrow.now("Asia/Seoul")
-
+def dayget():
     res=random.random()*100
 
     getMoney=0
@@ -21,27 +19,5 @@ def dayget(moneydir,userdata):
     else:
         getMoney=random.randint(13000,16000)
         grade=4
-    print(f"moneydir : {moneydir}")
     
-    moneydir.update(
-        {"dayget":f"{nowtime.date().year}-{nowtime.date().month}-{nowtime.date().day}",
-        "money":userdata["money"]+getMoney}
-        )
-    gradecount=[0,0,0,0]
-    if "stat" not in userdata:
-        gradecount[grade-1]+=1
-        moneydir.update({"stat":{"dayget":{"countdays":1,"gradeCount":gradecount,"totalDayGet":getMoney}}})
-    else:
-        if "dayget" not in userdata["stat"]:
-            moneydir.update({"stat":{"dayget":{"countdays":1,"gradeCount":gradecount,"totalDayGet":getMoney}}})
-        else:
-            statdata=userdata["stat"]["dayget"]
-
-            gradecount=statdata["gradeCount"]
-            gradecount[grade-1]+=1
-
-            moneydir.update({"stat":{"dayget":{"countdays":statdata["countdays"]+1,"gradeCount":gradecount,"totalDayGet":statdata["totalDayGet"]+getMoney}}})
-
-
-
     return getMoney,grade
