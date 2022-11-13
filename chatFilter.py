@@ -9,13 +9,8 @@ from datetime import datetime, timedelta
 import os
 import random
 import asyncio
-import emoji
 import pymysql
-import pymssql
 import arrow
-import firebase_admin
-from firebase_admin import credentials
-from firebase_admin import db
 import money
 import reinforce
 import math
