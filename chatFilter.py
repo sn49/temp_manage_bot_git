@@ -24,7 +24,7 @@ version="V-22-11-14-01"
 sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
 
-
+print(sqlcon)
 
 
 server=""
