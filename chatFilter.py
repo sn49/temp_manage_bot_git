@@ -27,8 +27,7 @@ sqlcon = json.load(sqlinfo)
 print(sqlcon)
 
 
-server=""
-
+print(testcheck)
 if testcheck == "test":
     testmode = True
     server=sqlcon["test_server"]
