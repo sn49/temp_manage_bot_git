@@ -409,7 +409,7 @@ async def 베팅(ctx,mode=None,amount=-50000):
     
     amount=int(amount)
 
-    sql=f"select money from user where discordid={ctx.author.id}"
+    sql=f"select money from users where discordid={ctx.author.id}"
     cur.execute(sql)
     havemoney=cur.fetchone()[0]
 
@@ -440,7 +440,7 @@ async def 베팅(ctx,mode=None,amount=-50000):
         return
 
 
-    sql=f"update user set money=money-{amount} where discordid={ctx.author.id}"
+    sql=f"update users set money=money-{amount} where discordid={ctx.author.id}"
     print(sql)
     cur.execute(sql)
 
@@ -450,7 +450,7 @@ async def 베팅(ctx,mode=None,amount=-50000):
 
     if dice<percent:
         log+="성공함"
-        sql=f"update user set money=money+{math.floor(amount*multiple)} where discordid={ctx.author.id}"
+        sql=f"update users set money=money+{math.floor(amount*multiple)} where discordid={ctx.author.id}"
     else:
         log+="실패함"
     
@@ -465,7 +465,7 @@ async def 출석(ctx):
     nowtime=arrow.now("Asia/Seoul")
     
     #제일 최근 출첵 날짜를 불러옴
-    sql=f"select today_free_get from user where discordid={ctx.author.id}"
+    sql=f"select today_free_get from users where discordid={ctx.author.id}"
 
     cur.execute(sql)
 
@@ -481,7 +481,7 @@ async def 출석(ctx):
     if date_string!=getdate:
         result=money.dayget()
 
-        sql=f"update user set money=money+{result[0]},today_free_get='{date_string}' where discordid={ctx.author.id}"
+        sql=f"update users set money=money+{result[0]},today_free_get='{date_string}' where discordid={ctx.author.id}"
         cur.execute(sql)
 
         log=f"grade : {result[1]}, {result[0]}money 획득"
@@ -505,7 +505,7 @@ async def 출석(ctx):
 @bot.command()
 async def 정보(ctx):
 
-    sql=f"select point,activity_level,reinforce_level,money,today_free_get from user where discordid={ctx.author.id}"
+    sql=f"select point,activity_level,reinforce_level,money,today_free_get from users where discordid={ctx.author.id}"
 
     cur.execute(sql)
 
