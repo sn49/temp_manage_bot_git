@@ -28,34 +28,24 @@ sqlcon = json.load(sqlinfo)
 
 
 server=""
-username=""
-password=""
-database=""
 
-
-
-
-host_type=""
-dbname=""
-username=""
-servername=""
 if testcheck == "test":
     testmode = True
-    servername=sqlcon["test_server"]
+    server=sqlcon["test_server"]
 
 elif testcheck == "main":
     testmode = False
-    servername=sqlcon["main_server"]
+    server=sqlcon["main_server"]
 else:
     mode_error = open("errorinfo.txt", "w")
     mode_error.write("bootmode.txt의 내용이 'main'이거나 'test'가 아님")
     mode_error.close()
 
-print(f"servername = {servername}")
+print(f"servername = {server}")
 
 database = pymysql.connect(
     user=sqlcon["user"],
-    host=servername,
+    host=server,
     database=sqlcon["db"],
     password=sqlcon["password"],
     charset=sqlcon["charset"],
