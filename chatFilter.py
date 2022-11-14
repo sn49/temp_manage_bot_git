@@ -36,14 +36,15 @@ if testcheck == "test":
 
 elif testcheck == "main":
     testmode = False
-    server_type="test_server"
+    server_type="main_server"
     pwd_type="main_password"
 else:
     mode_error = open("errorinfo.txt", "w")
     mode_error.write("bootmode.txt의 내용이 'main'이거나 'test'가 아님")
     mode_error.close()
 
-
+print(sqlcon[pwd_type])
+print(sqlcon[server_type])
 database = pymysql.connect(
     user=sqlcon["user"],
     host=sqlcon[server_type],
