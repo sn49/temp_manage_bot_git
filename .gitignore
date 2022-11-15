@@ -153,3 +153,4 @@ cython_debug/
 
 data/
 secret/
+boot_record/

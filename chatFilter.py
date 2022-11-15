@@ -19,7 +19,7 @@ import math
 
 testcheck = open("secret/bootmode.txt", "r").read()
 
-version="V-22-11-14-01"
+version="V-22-11-15-01"
 
 sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
@@ -440,6 +440,7 @@ async def 베팅(ctx,mode=None,amount=-50000):
     if dice<percent:
         log+="성공함"
         sql=f"update users set money=money+{math.floor(amount*multiple)} where discordid={ctx.author.id}"
+        cur.execute(sql)
     else:
         log+="실패함"
     
@@ -477,7 +478,6 @@ async def 출석(ctx):
 
         await ctx.send(log)
 
-        cur.execute(sql)
 
         
 
@@ -637,11 +637,11 @@ if os.path.isfile(f"{now.year}{now.month}{now.day}"):
 
     daily_reboot+=1
     
-    mode_error = open(f"{now.year}{now.month}{now.day}", "w")
+    mode_error = open(f"boot_record/{now.year}{now.month}{now.day}", "w")
     mode_error.write(f"{daily_reboot}")
     mode_error.close()
 else:
-    mode_error = open(f"{now.year}{now.month}{now.day}", "w")
+    mode_error = open(f"boot_record/{now.year}{now.month}{now.day}", "w")
     mode_error.write("1")
     daily_reboot=1
     mode_error.close()
