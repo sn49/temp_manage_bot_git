@@ -19,12 +19,11 @@ import math
 
 testcheck = open("secret/bootmode.txt", "r").read()
 
-version="V-22-11-15-01"
+version="V-22-11-23-01"
 
 sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
 
-print(sqlcon)
 
 server_type=""
 pwd_type=""
@@ -43,8 +42,6 @@ else:
     mode_error.write("bootmode.txt의 내용이 'main'이거나 'test'가 아님")
     mode_error.close()
 
-print(sqlcon[pwd_type])
-print(sqlcon[server_type])
 database = pymysql.connect(
     user=sqlcon["user"],
     host=sqlcon[server_type],
@@ -161,7 +158,7 @@ async def on_member_join(member):
     await channel.set_permissions(selfbot, read_messages=True)
     await channel.set_permissions(member.guild.default_role, read_messages=False)
 
-    length=10
+    length=5
 
     testcode = random.sample(string.ascii_letters, length)
 
@@ -325,58 +322,31 @@ tempvoice = False
 
 
 @bot.command()
-async def 상점(ctx,id):
-    await ctx.send("준비중입니다. 11월 예정")
+async def 상점(ctx,id=None):
+    sql="SELECT i.itemname,i.item_type,s.*  FROM store AS s INNER JOIN items AS i WHERE s.itemid = i.itemid"
+
+    cur.execute(sql)
+
+    res=cur.fetchall()
+
+    sendtext=""
+    for data in res :
+        sendtext+=f"{data[0]}"
+
+        if data[1]=="can_reinforce_item":
+            sendtext+=f" +{data[5]} "
+
+        sendtext+=f"{data[1]} {data[3]} {data[4]}\n"
+    
+    await ctx.send(sendtext)
+
+
+    await ctx.send("11~12월 아이템 구매기능 예정")
     return
 
-    storedir=db.reference(f"{DBroot}/store")
-
-    items=storedir.get()
 
 
-    defaultstore={
-        [
-            {"name":"강화할수 있는 물건 +1","amount":200,"price":5000,"item_type":"can_reinforce_item"}
-            ]
-        }
-    if id==None:
-        if items==None:
-            storedir.update(defaultstore)
-            await ctx.send(defaultstore)
-        else:
-            await ctx.send(items)
-    else:
-        id=int(id)
-        name=items[id-1]["name"]
-        price=items[id-1]["price"]
-        amount=items[id-1]["amount"]
-        item_type=items[id-1]["item_type"]
-
-        userdir=db.reference(f"{DBroot}/users/'{ctx.author.id}'")
-
-        
-        userinfo=userdir.get()
-
-        if price>userinfo["money"]:
-            await ctx.send(f"{price-userinfo['money']}money가 부족하여 {name} 구매 불가합니다.")
-            return
-
-        if "+" in name:
-            name=name.split("+")
-
-        if len(name)==2:
-            if "inventory" in userinfo:
-                if "can_reinforce_item" in userinfo["inventory"]:
-                    if userinfo["inventory"]["can_reinforce_item"]==0:
-                        userdir.update({"money":userinfo['money']-price,"inventory":{"can_reinforce_item":int(name[1])}})
-                    else:
-                        await ctx.send("강화할수 있는 물건을 이미 가지고 있습니다.")
-                else:
-                    userdir.update({"money":userinfo['money']-price,"inventory":{"can_reinforce_item":int(name[1])}})
-            else:
-                userdir.update({"money":userinfo['money']-price,"inventory":{"can_reinforce_item":int(name[1])}})
-        else:
-            await ctx.send("추후 구매 가능 예정")
+   
 
         
 
@@ -630,8 +600,8 @@ else:
 
 now=arrow.now("Asia/Seoul")
 
-if os.path.isfile(f"{now.year}{now.month}{now.day}"):
-    mode_error = open(f"{now.year}{now.month}{now.day}", "r")
+if os.path.isfile(f"boot_record/{now.year}{now.month}{now.day}"):
+    mode_error = open(f"boot_record/{now.year}{now.month}{now.day}", "r")
     daily_reboot=int(mode_error.read())
     mode_error.close()
 
