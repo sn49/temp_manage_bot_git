@@ -19,7 +19,7 @@ import math
 
 testcheck = open("secret/bootmode.txt", "r").read()
 
-version="V-22-11-23-01"
+version="V-22-11-24-01"
 
 sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
@@ -253,7 +253,7 @@ async def on_message(tempmessage):
         if entry_test_data!=None:
             remain_char=entry_test_data[2]
 
-            if entry_test_data[1][10-remain_char]==tempmessage.content:
+            if entry_test_data[1][5-remain_char]==tempmessage.content:
 
                 
                 #remain_char-1 DB에 반영
@@ -354,7 +354,7 @@ async def 상점(ctx,id=None):
 
 @bot.command()
 async def 강화(ctx):
-    await ctx.send("준비중입니다. 11월 예정")
+    await ctx.send("준비중입니다. 12월 예정")
     return
     moneydir=db.reference(f"{DBroot}/users/'{ctx.author.id}'")
 
@@ -501,6 +501,14 @@ async def 제한음챗(ctx):
 
 #     await ctx.send(f"{}으로 {} {}번 하기")
 
+@bot.command()
+async def 채널온오프(ctx):
+    robby2role = nextcord.utils.get(ctx.guild.roles, name="로비2")
+
+    if robby2role in ctx.author.roles:
+        await ctx.author.remove_roles(robby2role)
+    else:
+        await ctx.author.add_roles(robby2role)
 
 @bot.command()
 async def 서버정보(ctx):
