@@ -14,12 +14,13 @@ import arrow
 import money
 import reinforce
 import math
+from secret import lottery_extra_get
 
-
+extra_get=lottery_extra_get.lottery_extra_get.extra_get
 
 testcheck = open("secret/bootmode.txt", "r").read()
 
-version="V-22-11-24-01"
+version="V-22-12-20-01"
 
 sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
@@ -439,7 +440,11 @@ async def 출석(ctx):
 
     #(현재시간 - 6시간)의 날짜와 획득날짜를 비교해서 같으면 return, 다르면 재화 지급
     if date_string!=getdate:
-        result=money.dayget()
+        testmul=1
+        if testcheck=="test":
+            testmul=10
+        result=list(money.dayget())
+        result[0]*=testmul
 
         sql=f"update users set money=money+{result[0]},today_free_get='{date_string}' where discordid={ctx.author.id}"
         cur.execute(sql)
@@ -449,16 +454,30 @@ async def 출석(ctx):
         await ctx.send(log)
 
 
+        log=bot_log(ctx.author.id,"출석",log)
         
-
-        sql=f"insert into log (discordid,version,command,discription) values ({ctx.author.id},'{version}','출석','{log}')"
-        print(sql)
-        cur.execute(sql)
+        log.write_log()
     else:
         await ctx.send("이미 오늘은 얻었습니다. 리셋시간 : 오전6시")
         return
 
-    
+class bot_log:
+
+    def __init__(self,discordid,command,log):
+        self.discordid=discordid
+        self.command=command
+        self.log=log
+
+    def write_log(self):
+        global version
+        global cur
+
+
+        sql=f"insert into log (discordid,version,command,discription) values ({self.discordid},'{version}','{self.command}','{self.log}')"
+        print(sql)
+        cur.execute(sql)
+
+
     
 
 @bot.command()
@@ -502,8 +521,10 @@ async def 제한음챗(ctx):
 #     await ctx.send(f"{}으로 {} {}번 하기")
 
 @bot.command()
-async def 채널온오프(ctx):
-    robby2role = nextcord.utils.get(ctx.guild.roles, name="로비2")
+async def 채널온오프(ctx,index=1):
+    role_name=["로비2","봇테스트"]
+
+    robby2role = nextcord.utils.get(ctx.guild.roles, name=role_name[int(index)-1])
 
     if robby2role in ctx.author.roles:
         await ctx.author.remove_roles(robby2role)
@@ -547,6 +568,68 @@ async def 등록(ctx):
     for mem in regimember:  
         sql=f"insert into user (discordid) values ({mem[0]})"
         cur.execute(sql)
+
+
+@bot.command()
+async def 복권(ctx):
+    sql=f"select money from users where discordid={ctx.author.id}"
+    cur.execute(sql)
+    money=cur.fetchone()[0]
+
+    if money<5000:
+        await ctx.send(f"{5000-money} 부족합니다.")
+        return
+    
+    sql=f"update users set money=money-5000 where discordid={ctx.author.id}"
+    cur.execute(sql)
+    makeEmoji=False
+    mypick=random.sample(range(1,11),5)
+    result=random.sample(range(1,11),5)
+
+    same = [i for i, j in zip(mypick, result) if i == j]
+
+    correct=len(same)
+    
+    sendtext=f"현재 복권 기능은 자동만 지원합니다.\n"
+    tlog=f"복권번호 : {mypick}\n당첨번호 : {result}\n"
+
+    sql=f"select stack_moa from lottery"
+
+    cur.execute(sql)
+
+
+    total_stack=cur.fetchone()[0]+5000
+    print(total_stack)
+    if correct==5:
+        stack=-total_stack
+        tlog+=f"1등 당첨! {-stack}모아 + {extra_get['1등']} 획득!"
+    elif correct==4:
+        stack=(-total_stack)*0.5
+        tlog+=f"2등 당첨! {-stack}모아 + {extra_get['2등']} 획득!"
+    elif correct==3:
+        tlog+="3등 당첨! 50000모아 획득!"
+        stack=-50000
+    elif correct==2:
+        tlog+="4등 당첨! 5000모아 획득!"
+        stack=-5000
+    else:
+        tlog+="당첨 실패!"
+        stack=0
+    #stack_moa+stack
+    sendtext+=tlog
+    sendtext+=f" 적립 모아 : {total_stack}모아"
+    resultMsg=await ctx.send(sendtext)
+
+    if stack!=-5000:
+        print(total_stack+stack)
+        sql=f"update lottery set stack_moa={total_stack+stack}"
+        print(sql)
+        cur.execute(sql)
+
+
+    log=bot_log(ctx.author.id,"복권",tlog)
+    log.write_log()
+
 
 @bot.command()
 async def 집(ctx):
