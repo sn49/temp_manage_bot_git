@@ -18,7 +18,7 @@ import math
 
 testcheck = open("secret/bootmode.txt", "r").read()
 
-version="V-22-12-20-03"
+version="V-22-12-20-04"
 
 sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
@@ -603,7 +603,7 @@ async def 복권(ctx,repeat=1):
 
             if money<50000:
                 await ctx.send(f"{need-money} 부족합니다.")
-                return
+                break
             else:
                 sql=f"update users set money=money-{need} where discordid={ctx.author.id}"
                 cur.execute(sql)
