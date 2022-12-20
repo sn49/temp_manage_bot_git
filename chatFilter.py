@@ -20,7 +20,7 @@ extra_get=lottery_extra_get.lottery_extra_get.extra_get
 
 testcheck = open("secret/bootmode.txt", "r").read()
 
-version="V-22-12-20-01"
+version="V-22-12-20-02"
 
 sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
@@ -571,64 +571,95 @@ async def 등록(ctx):
 
 
 @bot.command()
-async def 복권(ctx):
-    sql=f"select money from users where discordid={ctx.author.id}"
-    cur.execute(sql)
-    money=cur.fetchone()[0]
+async def 복권(ctx,repeat=1):
+    try:
+        repeat=int(repeat)
 
-    if money<5000:
-        await ctx.send(f"{5000-money} 부족합니다.")
-        return
-    
-    sql=f"update users set money=money-5000 where discordid={ctx.author.id}"
-    cur.execute(sql)
-    makeEmoji=False
-    mypick=random.sample(range(1,11),5)
-    result=random.sample(range(1,11),5)
+        if repeat>5:
+            await ctx.send("최대 5회 반복 가능")
+            return
+        elif repeat<1:
+            await ctx.send("1미만 숫자 입력 불가")
+            return
 
-    same = [i for i, j in zip(mypick, result) if i == j]
+        
+        sendtext=f"현재 복권 기능은 자동만 지원합니다.\n"
 
-    correct=len(same)
-    
-    sendtext=f"현재 복권 기능은 자동만 지원합니다.\n"
-    tlog=f"복권번호 : {mypick}\n당첨번호 : {result}\n"
+        repeat_real=0
 
-    sql=f"select stack_moa from lottery"
+        sql=f"select stack_moa from lottery"
 
-    cur.execute(sql)
-
-
-    total_stack=cur.fetchone()[0]+5000
-    print(total_stack)
-    if correct==5:
-        stack=-total_stack
-        tlog+=f"1등 당첨! {-stack}모아 + {extra_get['1등']} 획득!"
-    elif correct==4:
-        stack=(-total_stack)*0.5
-        tlog+=f"2등 당첨! {-stack}모아 + {extra_get['2등']} 획득!"
-    elif correct==3:
-        tlog+="3등 당첨! 50000모아 획득!"
-        stack=-50000
-    elif correct==2:
-        tlog+="4등 당첨! 5000모아 획득!"
-        stack=-5000
-    else:
-        tlog+="당첨 실패!"
-        stack=0
-    #stack_moa+stack
-    sendtext+=tlog
-    sendtext+=f" 적립 모아 : {total_stack}모아"
-    resultMsg=await ctx.send(sendtext)
-
-    if stack!=-5000:
-        print(total_stack+stack)
-        sql=f"update lottery set stack_moa={total_stack+stack}"
-        print(sql)
         cur.execute(sql)
 
 
-    log=bot_log(ctx.author.id,"복권",tlog)
-    log.write_log()
+        total_stack=cur.fetchone()[0]
+        stack=0
+        tlog=""
+
+        for count in range(repeat):
+            sql=f"select money from users where discordid={ctx.author.id}"
+            cur.execute(sql)
+            money=cur.fetchone()[0]
+
+            if money<5000:
+                await ctx.send(f"{5000-money} 부족합니다.")
+                return
+            else:
+                sql=f"update users set money=money-5000 where discordid={ctx.author.id}"
+                cur.execute(sql)
+            repeat_real+=1
+            total_stack+=5000
+            mypick=random.sample(range(1,11),5)
+            result=random.sample(range(1,11),5)
+
+            correct = 0
+ 
+            for mp in mypick:
+                for rs in result:
+                    if mp == rs:
+                        correct +=1
+
+        
+            tlog+=f"복권번호 : {mypick}\n당첨번호 : {result}\n"
+
+            
+
+            if correct==5:
+                stack+=-total_stack
+                tlog+=f"1등 당첨! {-stack}모아 + {extra_get['1등']} 획득!\n\n"
+                break
+            elif correct==4:
+                stack+=(-total_stack)*0.5
+                tlog+=f"2등 당첨! {-stack}모아 + {extra_get['2등']} 획득!\n\n"
+                break
+            elif correct==3:
+                tlog+="3등 당첨! 50000모아 획득!\n\n"
+                stack+=-50000
+            elif correct==2:
+                tlog+="4등 당첨! 5000모아 획득!\n\n"
+                stack+=-5000
+            else:
+                tlog+="당첨 실패!\n\n"
+                stack+=0
+
+            
+        tlog+=f"\n반복 횟수 {repeat_real}회"
+        sendtext+=tlog
+        sendtext+=f" 적립 모아 : {total_stack+stack}모아\n"
+        
+        await ctx.send(sendtext)
+
+        if stack!=-5000:
+            print(total_stack+stack)
+            sql=f"update lottery set stack_moa={total_stack+stack}"
+            print(sql)
+            cur.execute(sql)
+
+
+        log=bot_log(ctx.author.id,"복권",tlog)
+        log.write_log()
+    except Exception as e:
+        await ctx.send(e)
 
 
 @bot.command()
