@@ -14,13 +14,11 @@ import arrow
 import money
 import reinforce
 import math
-from secret import lottery_extra_get
 
-extra_get=lottery_extra_get.lottery_extra_get.extra_get
 
 testcheck = open("secret/bootmode.txt", "r").read()
 
-version="V-22-12-20-02"
+version="V-22-12-20-03"
 
 sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
@@ -442,7 +440,7 @@ async def 출석(ctx):
     if date_string!=getdate:
         testmul=1
         if testcheck=="test":
-            testmul=10
+            testmul=1000
         result=list(money.dayget())
         result[0]*=testmul
 
@@ -595,22 +593,27 @@ async def 복권(ctx,repeat=1):
         total_stack=cur.fetchone()[0]
         stack=0
         tlog=""
-
+        need=50000
+        getmoa=0
+        totalgetmoa=0
         for count in range(repeat):
             sql=f"select money from users where discordid={ctx.author.id}"
             cur.execute(sql)
             money=cur.fetchone()[0]
 
-            if money<5000:
-                await ctx.send(f"{5000-money} 부족합니다.")
+            if money<50000:
+                await ctx.send(f"{need-money} 부족합니다.")
                 return
             else:
-                sql=f"update users set money=money-5000 where discordid={ctx.author.id}"
+                sql=f"update users set money=money-{need} where discordid={ctx.author.id}"
                 cur.execute(sql)
             repeat_real+=1
-            total_stack+=5000
-            mypick=random.sample(range(1,11),5)
-            result=random.sample(range(1,11),5)
+            total_stack+=need
+            mypick=random.sample(range(1,12),4)
+            result=random.sample(range(1,12),4)
+
+            mypick.sort()
+            result.sort()
 
             correct = 0
  
@@ -623,37 +626,43 @@ async def 복권(ctx,repeat=1):
             tlog+=f"복권번호 : {mypick}\n당첨번호 : {result}\n"
 
             
-
-            if correct==5:
-                stack+=-total_stack
-                tlog+=f"1등 당첨! {-stack}모아 + {extra_get['1등']} 획득!\n\n"
-                break
-            elif correct==4:
-                stack+=(-total_stack)*0.5
-                tlog+=f"2등 당첨! {-stack}모아 + {extra_get['2등']} 획득!\n\n"
-                break
+            getmoa=0
+            if correct==4:
+                getmoa=total_stack
+                tlog+=f"1등 당첨! {getmoa}모아 획득!\n\n"
             elif correct==3:
-                tlog+="3등 당첨! 50000모아 획득!\n\n"
-                stack+=-50000
+                getmoa=math.floor((total_stack)*0.5)
+                tlog+=f"2등 당첨! {getmoa}모아 획득!\n\n"
             elif correct==2:
-                tlog+="4등 당첨! 5000모아 획득!\n\n"
-                stack+=-5000
+                tlog+="3등 당첨! 50000모아 획득!\n\n"
+                getmoa=50000
+            elif correct==1:
+                tlog+="4등 당첨! 10000모아 획득!\n\n"
+                getmoa=10000
             else:
                 tlog+="당첨 실패!\n\n"
-                stack+=0
+                getmoa=0
+            totalgetmoa+=getmoa
+            total_stack-=getmoa
 
-            
-        tlog+=f"\n반복 횟수 {repeat_real}회"
+        sql=f"update lottery set stack_moa={total_stack}"
+        print(sql)
+        cur.execute(sql)
+
+        tlog+=f"\n반복 횟수 {repeat_real}회\n"
         sendtext+=tlog
-        sendtext+=f" 적립 모아 : {total_stack+stack}모아\n"
+        sendtext+=f"획득 모아 : {totalgetmoa}모아 적립 모아 : {total_stack}모아\n"
         
         await ctx.send(sendtext)
 
-        if stack!=-5000:
+        if stack!=-need*repeat_real:
             print(total_stack+stack)
-            sql=f"update lottery set stack_moa={total_stack+stack}"
-            print(sql)
-            cur.execute(sql)
+            
+
+        
+        sql=f"update users set money=money+{getmoa} where discordid={ctx.author.id}"
+        print(sql)
+        cur.execute(sql)
 
 
         log=bot_log(ctx.author.id,"복권",tlog)
