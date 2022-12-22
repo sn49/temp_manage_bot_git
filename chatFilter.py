@@ -18,11 +18,11 @@ import math
 
 testcheck = open("secret/bootmode.txt", "r").read()
 
-version="V-22-12-22-01"
+version="V-22-12-22-02"
 
 sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
-
+bot_pause=False
 
 server_type=""
 pwd_type=""
@@ -344,7 +344,7 @@ async def 상점(ctx,id=None):
     return
 
 
-bot_pause=False
+
    
 
         
@@ -377,6 +377,7 @@ betstrike={}
 
 @bot.command()
 async def 베팅(ctx,mode=None,amount=-50000,repeat=1):
+    global bot_pause
     if bot_pause:
         await ctx.send("일시정지 상태입니다.")
         return
@@ -602,6 +603,7 @@ async def 등록(ctx):
 
 @bot.command()
 async def 복권(ctx,repeat=1):
+    global bot_pause
     try:
         repeat=int(repeat)
 
