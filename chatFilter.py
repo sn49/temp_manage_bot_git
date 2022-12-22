@@ -377,74 +377,77 @@ betstrike={}
 
 @bot.command()
 async def 베팅(ctx,mode=None,amount=-50000,repeat=1):
-    global bot_pause
-    if bot_pause:
-        await ctx.send("일시정지 상태입니다.")
-        return
-    percent=0
-    multiple=0
+    try:
+        global bot_pause
+        if bot_pause:
+            await ctx.send("일시정지 상태입니다.")
+            return
+        percent=0
+        multiple=0
 
-    
-    amount=int(amount)
-
-    sql=f"select money,bet_limit from users where discordid={ctx.author.id}"
-    cur.execute(sql)
-    havemoney=cur.fetchone()[0]
-    bet_limit=cur.fetchone()[1]
-
-    if bet_limit==0:
-        await ctx.send("더이상 베팅을 할 수 없습니다.")
-        return
-
-    if mode=="1":
-        percent=50
-        multiple=2.2
-    elif mode=="2":
-        percent=30
-        multiple=4
-    elif mode=="3":
-        percent=10
-        multiple=12
-    elif mode=="7":
         
-        percent=40
-        multiple=2.7
-        amount=havemoney
-    else:
-        await ctx.send("잘못된 모드입력입니다.")
-        return
+        amount=int(amount)
 
-    if amount<=0 and mode!="7":
-        await ctx.send("0money 이하 베팅 불가")
-        return
-
-    
-
-    if havemoney<amount:
-        await ctx.send(f"{amount-havemoney}모아가 부족합니다.")
-        return
-
-
-    sql=f"update users set money=money-{amount},bet_limit=bet_limit-1 where discordid={ctx.author.id}"
-    print(sql)
-    cur.execute(sql)
-
-    dice=random.random()*100
-
-    log=f"모드 {mode}를 사용하여 {percent}%로 {amount}모아를 {multiple}배 불리기 "
-
-    if dice<percent:
-        log+="성공함"
-        sql=f"update users set money=money+{math.floor(amount*multiple)} where discordid={ctx.author.id}"
+        sql=f"select money,bet_limit from users where discordid={ctx.author.id}"
         cur.execute(sql)
-    else:
-        log+="실패함"
-    
-    await ctx.send(f"{ctx.author.display_name}"+log)
-      
-    sql=f"insert into log (discordid,version,command,discription) values ({ctx.author.id},'{version}','베팅','{log}')"
+        havemoney=cur.fetchone()[0]
+        bet_limit=cur.fetchone()[1]
 
-    cur.execute(sql)
+        if bet_limit==0:
+            await ctx.send("더이상 베팅을 할 수 없습니다.")
+            return
+
+        if mode=="1":
+            percent=50
+            multiple=2.2
+        elif mode=="2":
+            percent=30
+            multiple=4
+        elif mode=="3":
+            percent=10
+            multiple=12
+        elif mode=="7":
+            
+            percent=40
+            multiple=2.7
+            amount=havemoney
+        else:
+            await ctx.send("잘못된 모드입력입니다.")
+            return
+
+        if amount<=0 and mode!="7":
+            await ctx.send("0money 이하 베팅 불가")
+            return
+
+        
+
+        if havemoney<amount:
+            await ctx.send(f"{amount-havemoney}모아가 부족합니다.")
+            return
+
+
+        sql=f"update users set money=money-{amount},bet_limit=bet_limit-1 where discordid={ctx.author.id}"
+        print(sql)
+        cur.execute(sql)
+
+        dice=random.random()*100
+
+        log=f"모드 {mode}를 사용하여 {percent}%로 {amount}모아를 {multiple}배 불리기 "
+
+        if dice<percent:
+            log+="성공함"
+            sql=f"update users set money=money+{math.floor(amount*multiple)} where discordid={ctx.author.id}"
+            cur.execute(sql)
+        else:
+            log+="실패함"
+        
+        await ctx.send(f"{ctx.author.display_name}"+log)
+        
+        sql=f"insert into log (discordid,version,command,discription) values ({ctx.author.id},'{version}','베팅','{log}')"
+
+        cur.execute(sql)
+    except Exception as e:
+        await ctx.send(e)
 
 @bot.command()
 async def 일시정지(ctx):
