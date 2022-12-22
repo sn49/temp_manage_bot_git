@@ -14,6 +14,7 @@ import arrow
 import money
 import reinforce
 import math
+import traceback
 
 
 testcheck = open("secret/bootmode.txt", "r").read()
@@ -377,8 +378,8 @@ betstrike={}
 
 @bot.command()
 async def 베팅(ctx,mode=None,amount=-50000,repeat=1):
+    global bot_pause
     try:
-        global bot_pause
         if bot_pause:
             await ctx.send("일시정지 상태입니다.")
             return
@@ -390,8 +391,9 @@ async def 베팅(ctx,mode=None,amount=-50000,repeat=1):
 
         sql=f"select money,bet_limit from users where discordid={ctx.author.id}"
         cur.execute(sql)
-        havemoney=cur.fetchone()[0]
-        bet_limit=cur.fetchone()[1]
+        resd=cur.fetchone()
+        havemoney=resd[0]
+        bet_limit=resd[1]
 
         if bet_limit==0:
             await ctx.send("더이상 베팅을 할 수 없습니다.")
@@ -447,10 +449,11 @@ async def 베팅(ctx,mode=None,amount=-50000,repeat=1):
 
         cur.execute(sql)
     except Exception as e:
-        await ctx.send(e)
+        await ctx.send(traceback.print_exc())
 
 @bot.command()
 async def 일시정지(ctx):
+    global bot_pause
     bot_pause=not bot_pause
 
 
