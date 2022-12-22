@@ -18,7 +18,7 @@ import math
 
 testcheck = open("secret/bootmode.txt", "r").read()
 
-version="V-22-12-20-04"
+version="V-22-12-22-01"
 
 sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
@@ -344,7 +344,7 @@ async def 상점(ctx,id=None):
     return
 
 
-
+bot_pause=False
    
 
         
@@ -360,19 +360,39 @@ async def 강화(ctx):
     reinforce.reinforce()
 
 @bot.command()
-async def 베팅(ctx,mode=None,amount=-50000):
+async def 랭킹(ctx,user=None):
+    sql=f"SELECT discordid,money FROM users ORDER BY money DESC LIMIT 5"
+    cur.execute(sql)
+    res=cur.fetchall()
+
+    sendtext="```"
+
+    for r in res:
+        sendtext+=f"{bot.get_user(r[0]).display_name} {r[1]}모아\n"
+    sendtext+="```"
+    await ctx.send(sendtext)
+
+betstrike={}
+
+
+@bot.command()
+async def 베팅(ctx,mode=None,amount=-50000,repeat=1):
+    if bot_pause:
+        await ctx.send("일시정지 상태입니다.")
+        return
     percent=0
     multiple=0
 
     
     amount=int(amount)
 
-    sql=f"select money from users where discordid={ctx.author.id}"
+    sql=f"select money,bet_limit from users where discordid={ctx.author.id}"
     cur.execute(sql)
     havemoney=cur.fetchone()[0]
+    bet_limit=cur.fetchone()[1]
 
-    if amount<=0 and mode!="7":
-        await ctx.send("0money 이하 베팅 불가")
+    if bet_limit==0:
+        await ctx.send("더이상 베팅을 할 수 없습니다.")
         return
 
     if mode=="1":
@@ -393,12 +413,18 @@ async def 베팅(ctx,mode=None,amount=-50000):
         await ctx.send("잘못된 모드입력입니다.")
         return
 
+    if amount<=0 and mode!="7":
+        await ctx.send("0money 이하 베팅 불가")
+        return
+
+    
+
     if havemoney<amount:
         await ctx.send(f"{amount-havemoney}모아가 부족합니다.")
         return
 
 
-    sql=f"update users set money=money-{amount} where discordid={ctx.author.id}"
+    sql=f"update users set money=money-{amount},bet_limit=bet_limit-1 where discordid={ctx.author.id}"
     print(sql)
     cur.execute(sql)
 
@@ -413,11 +439,17 @@ async def 베팅(ctx,mode=None,amount=-50000):
     else:
         log+="실패함"
     
-    await ctx.send(log)
+    await ctx.send(f"{ctx.author.display_name}"+log)
       
     sql=f"insert into log (discordid,version,command,discription) values ({ctx.author.id},'{version}','베팅','{log}')"
 
     cur.execute(sql)
+
+@bot.command()
+async def 일시정지(ctx):
+    bot_pause=not bot_pause
+
+
 
 @bot.command()
 async def 출석(ctx):
@@ -444,7 +476,7 @@ async def 출석(ctx):
         result=list(money.dayget())
         result[0]*=testmul
 
-        sql=f"update users set money=money+{result[0]},today_free_get='{date_string}' where discordid={ctx.author.id}"
+        sql=f"update users set bet_limit=100,money=money+{result[0]},today_free_get='{date_string}' where discordid={ctx.author.id}"
         cur.execute(sql)
 
         log=f"grade : {result[1]}, {result[0]}money 획득"
