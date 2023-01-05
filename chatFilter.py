@@ -15,11 +15,13 @@ import money
 import reinforce
 import math
 import traceback
+import copy
 
-
+owner= int(open("secret/ownerid.txt", "r").read())
+maintence=False
 testcheck = open("secret/bootmode.txt", "r").read()
 
-version="V-22-12-22-02"
+version="V-23-01-06-01"
 
 sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
@@ -68,7 +70,7 @@ async def on_ready():
     print("-----------")
     await bot.change_presence(
         status=nextcord.Status.online,
-        activity=nextcord.Game(f"{now.year}-{now.month}-{now.day}의 {daily_reboot}번째 부팅"),
+        activity=nextcord.Game(f"{now.year}-{now.month}-{now.day}의 {daily_reboot}번째 부팅, 현재 버전 : {version}"),
     )
     # bot.loop.create_task(job())
 
@@ -294,15 +296,19 @@ async def on_message(tempmessage):
 
     else:
         await CheckMessage(tempmessage)
-
-        await bot.process_commands(tempmessage)
-
+        
         if (
             tempmessage.author.bot
-            or "C!" in tempmessage.content
-            or "c!" in tempmessage.content
         ):
             return
+        
+        if tempmessage.content.startswith("c!") or tempmessage.content.startswith("C!") :
+            if maintence:
+                await tempmessage.channel.send("임시점검중입니다.")
+            else:
+                await bot.process_commands(tempmessage)
+
+        
 
 
 @bot.event
@@ -320,7 +326,11 @@ deleteCount = {}
 
 tempvoice = False
 
-
+@bot.command()
+async def 코인(ctx,id=None):
+    await ctx.send("2023년내 오픈 예정")
+    return
+    
 @bot.command()
 async def 상점(ctx,id=None):
     sql="SELECT i.itemname,i.item_type,s.*  FROM store AS s INNER JOIN items AS i WHERE s.itemid = i.itemid"
@@ -353,12 +363,39 @@ async def 상점(ctx,id=None):
 
 
 @bot.command()
-async def 강화(ctx):
-    await ctx.send("준비중입니다. 12월 예정")
-    return
-    moneydir=db.reference(f"{DBroot}/users/'{ctx.author.id}'")
+async def 강화(ctx,go=None):
 
-    reinforce.reinforce()
+
+    #level과 money를 가져오는 sql
+    sql=f"select level,money from users where discordid={ctx.author.id}"
+    cur.execute(sql)
+    res=cur.fetchone()
+
+    level=res[0]
+    money=res[1]
+
+    cost=reinforce.getCost(level)
+
+    if go=="go":
+        if money>=cost:
+
+            
+
+            beforeLevel=copy.deepcopy(level)
+            level=reinforce.reinforce(level)
+
+            sql=f"update users set level={level}, money=money-{cost}"
+            cur.execute(sql)
+
+            log=f"강화 결과 : {beforeLevel} > {level}"
+            await ctx.send(log)
+            #로그 작성
+            log=bot_log(ctx.author.id,"강화",log)
+            log.write_log()
+        else:
+            await ctx.send(f"{cost-money}모아가 부족")
+    else:
+        await ctx.send(f"{level}레벨 강화비용 : {cost}모아")
 
 @bot.command()
 async def 랭킹(ctx,user=None):
@@ -443,11 +480,11 @@ async def 베팅(ctx,mode=None,amount=-50000,repeat=1):
         else:
             log+="실패함"
         
-        await ctx.send(f"{ctx.author.display_name}"+log)
-        
-        sql=f"insert into log (discordid,version,command,discription) values ({ctx.author.id},'{version}','베팅','{log}')"
+        await ctx.send(f"{ctx.author.display_name}:남은횟수 {bet_limit-1}회\n"+log)
 
-        cur.execute(sql)
+        bot_log(ctx.author.id,"베팅",log)
+        bot_log.write_log()
+        
     except Exception as e:
         await ctx.send(traceback.print_exc())
 
@@ -515,18 +552,24 @@ class bot_log:
         cur.execute(sql)
 
 
+@bot.command()
+async def 임시점검(ctx):
+    global maintence
+    if ctx.author.id==owner:
+        maintence=not maintence
+        await ctx.send(f"maintence : {maintence}")
     
 
 @bot.command()
 async def 정보(ctx):
 
-    sql=f"select point,activity_level,reinforce_level,money,today_free_get from users where discordid={ctx.author.id}"
+    sql=f"select level,money,today_free_get from users where discordid={ctx.author.id}"
 
     cur.execute(sql)
 
     result=cur.fetchone()
     
-    await ctx.send(f"활동 포인트 : {result[0]}P\n활동 레벨 : {result[1]}레벨\n강화 레벨 : {result[2]}레벨\n{result[3]}모아 보유중\n마지막 출석 날짜 : {result[4]}")
+    await ctx.send(f"레벨 : {result[0]}\n{format(result[1],',')}모아 보유중\n마지막 출석 날짜 : {result[2]}")
 
 
 @bot.command()
@@ -585,7 +628,6 @@ async def 서버정보(ctx):
 
 @bot.command()
 async def 등록(ctx):
-    passid=968004898262220800
 
     users=ctx.guild.members
 
@@ -593,13 +635,13 @@ async def 등록(ctx):
 
     for user in users:
         if not user.bot:
-            if user.id!=passid:
-                joindex=0
-                for mem in regimember:
-                    if user.joined_at > mem[1]:
-                        joindex+=1
-                
-                regimember.insert(joindex,[user.id,user.joined_at])
+            
+            joindex=0
+            for mem in regimember:
+                if user.joined_at > mem[1]:
+                    joindex+=1
+            
+            regimember.insert(joindex,[user.id,user.joined_at])
 
     print(regimember)
     for mem in regimember:  
