@@ -21,7 +21,7 @@ owner= int(open("secret/ownerid.txt", "r").read())
 maintence=False
 testcheck = open("secret/bootmode.txt", "r").read()
 
-version="V-23-01-06-01"
+version="V-23-01-06-02"
 
 sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
@@ -303,7 +303,7 @@ async def on_message(tempmessage):
             return
         
         if tempmessage.content.startswith("c!") or tempmessage.content.startswith("C!") :
-            if maintence:
+            if maintence and tempmessage.author.id!=owner:
                 await tempmessage.channel.send("임시점검중입니다.")
             else:
                 await bot.process_commands(tempmessage)
