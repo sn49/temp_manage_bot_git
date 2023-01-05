@@ -21,7 +21,7 @@ owner= int(open("secret/ownerid.txt", "r").read())
 maintence=False
 testcheck = open("secret/bootmode.txt", "r").read()
 
-version="V-23-01-06-02"
+version="V-23-01-06-03"
 
 sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
@@ -372,6 +372,9 @@ async def 강화(ctx,go=None):
     res=cur.fetchone()
 
     level=res[0]
+
+    if level==30:
+        await ctx.send("더이상 강화를 할 수 없습니다.")
     money=res[1]
 
     cost=reinforce.getCost(level)
