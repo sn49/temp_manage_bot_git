@@ -1,5 +1,6 @@
 import json
 import pymysql
+import reinforce
 
 sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
@@ -34,40 +35,63 @@ database = pymysql.connect(
 
 cur = database.cursor()
 
-sql=f"select * from log where command='베팅'"
-cur.execute(sql)
-result=cur.fetchall()
+def getBettingResult():
+    sql=f"select * from log where command='베팅'"
+    cur.execute(sql)
+    result=cur.fetchall()
 
-totaldata=[[0,0],[0,0],[0,0],[0,0]]
+    totaldata=[[0,0],[0,0],[0,0],[0,0]]
 
-for data in result:
-    d=data[5]
-    if d.startswith("모드 1"):
-        if d.endswith("실패함"):
-            totaldata[0][1]+=1
-        else:
-            totaldata[0][0]+=1
-    elif d.startswith("모드 2"):
-        if d.endswith("실패함"):
-            totaldata[1][1]+=1
-        else:
-            totaldata[1][0]+=1
-    elif d.startswith("모드 3"):
-        if d.endswith("실패함"):
-            totaldata[2][1]+=1
-        else:
-            totaldata[2][0]+=1
-    elif d.startswith("모드 7"):
-        if d.endswith("실패함"):
-            totaldata[3][1]+=1
-        else:
-            totaldata[3][0]+=1
+    for data in result:
+        d=data[5]
+        if d.startswith("모드 1"):
+            if d.endswith("실패함"):
+                totaldata[0][1]+=1
+            else:
+                totaldata[0][0]+=1
+        elif d.startswith("모드 2"):
+            if d.endswith("실패함"):
+                totaldata[1][1]+=1
+            else:
+                totaldata[1][0]+=1
+        elif d.startswith("모드 3"):
+            if d.endswith("실패함"):
+                totaldata[2][1]+=1
+            else:
+                totaldata[2][0]+=1
+        elif d.startswith("모드 7"):
+            if d.endswith("실패함"):
+                totaldata[3][1]+=1
+            else:
+                totaldata[3][0]+=1
 
-print(totaldata)
+    print(totaldata)
 
-success=[]
+    success=[]
 
-for d in totaldata:
-    success.append(d[0]/(d[0]+d[1])*100)
+    for d in totaldata:
+        success.append(d[0]/(d[0]+d[1])*100)
 
-print(success)
+    print(success)
+
+def getReinforceResult():
+    sql=f'''SELECT discription FROM log WHERE command="강화"'''
+
+    cur.execute(sql)
+
+    result=cur.fetchall()
+    cost=0
+
+    for data in result:
+        script=data[0]
+
+        script=script.replace("강화 결과 : ","")
+        script=script.replace(" ","")
+
+        level=script.split(">")
+        print(level)
+
+        cost+=reinforce.getCost(int(level[0]))
+        print(cost)
+
+getReinforceResult()

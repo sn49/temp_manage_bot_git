@@ -21,7 +21,7 @@ owner= int(open("secret/ownerid.txt", "r").read())
 maintence=False
 testcheck = open("secret/bootmode.txt", "r").read()
 
-version="V-23-01-06-03"
+version="V-23-01-09-01"
 
 sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
@@ -387,7 +387,7 @@ async def 강화(ctx,go=None):
             beforeLevel=copy.deepcopy(level)
             level=reinforce.reinforce(level)
 
-            sql=f"update users set level={level}, money=money-{cost}"
+            sql=f"update users set level={level}, money=money-{cost} where discordid={ctx.author.id}"
             cur.execute(sql)
 
             log=f"강화 결과 : {beforeLevel} > {level}"
