@@ -21,7 +21,7 @@ owner= int(open("secret/ownerid.txt", "r").read())
 maintence=False
 testcheck = open("secret/bootmode.txt", "r").read()
 
-version="V-23-01-09-01"
+version="V-23-01-09-02"
 
 sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
@@ -204,11 +204,13 @@ async def CheckMessage(message):
     black_ctx.write(message.content)
     black_ctx.close()
 
+    newmsg=message.content.replace(" ","")
+
     for black in blackwordlist:
 
-        if black in message.content:
+        if black in newmsg:
             
-            message.content = message.content.replace(black, "##")
+            newmsg = newmsg.replace(black, "## ")
             needDelete = True
 
     
@@ -228,7 +230,7 @@ async def CheckMessage(message):
         #필터링 된 메세지 정보에 해당 유저의 필터링 횟수도 보여줌
         await message.delete()
         await message.channel.send(
-            f"nick : {message.author.display_name}\n" + message.content
+            f"nick : {message.author.display_name}\n" + newmsg
         )
 
 
