@@ -222,6 +222,7 @@ async def CheckMessage(message):
 
 
 
+
         #필터링횟수에 따른 타임아웃 적용
 
 
@@ -255,12 +256,15 @@ async def on_message(tempmessage):
 
         #입장 테스트 유저일때
         if entry_test_data!=None:
+            """
             remain_char=entry_test_data[2]
 
             if entry_test_data[1][5-remain_char]==tempmessage.content:
-
-                
                 #remain_char-1 DB에 반영
+
+
+
+
 
                 #remain_chara-1 쿼리
                 sql=f"update entry_test set remain_char=remain_char-1 where discordid={tempmessage.autuor.id}"
@@ -273,28 +277,32 @@ async def on_message(tempmessage):
 
                 #입장테스트를 통과 했을때
                 if len(entry_test_data['test_string']) == 0:
-                    testrole = nextcord.utils.get(tempmessage.guild.roles, name="멤버")
-                    await tempmessage.author.add_roles(testrole)
+                    """
+            testrole = nextcord.utils.get(tempmessage.guild.roles, name="멤버")
+            await tempmessage.author.add_roles(testrole)
 
 
-                    #entry_test db에서 멤버 행 삭제 쿼리
-                    sql=f"delete from entry_test where discordid={tempmessage.author.id}"
+            #entry_test db에서 멤버 행 삭제 쿼리
+            sql=f"delete from entry_test where discordid={tempmessage.author.id}"
 
-                    #쿼리 실행
-                    cur.execute(sql)
+            #쿼리 실행
+            cur.execute(sql)
 
 
-                    await bot.get_channel(channelid).delete()
+            await bot.get_channel(channelid).delete()
 
-                    #멤버 insert 쿼리
-                    sql=f"insert into user (discordid) values ({tempmessage.author.id})"
+            #멤버 insert 쿼리
+            sql=f"insert into user (discordid) values ({tempmessage.author.id})"
 
-                    #멤버 insert 쿼리 실행
-                    cur.execute(sql)
+            #멤버 insert 쿼리 실행
+            cur.execute(sql)
+            """
                 else:
                     await tempmessage.channel.send(f"{len(entry_test_data['test_string'])}자 남음")
+                
             else:
                 await tempmessage.channel.send("문자를 틀렸거나 관리자가 대신 입력 할 수 없습니다.")
+                """
 
     else:
         await CheckMessage(tempmessage)
@@ -487,11 +495,36 @@ async def 베팅(ctx,mode=None,amount=-50000,repeat=1):
         
         await ctx.send(f"{ctx.author.display_name}:남은횟수 {bet_limit-1}회\n"+log)
 
-        bot_log(ctx.author.id,"베팅",log)
-        bot_log.write_log()
+        botlog=bot_log(ctx.author.id,"베팅",log)
+        botlog.write_log()
         
     except Exception as e:
         await ctx.send(traceback.print_exc())
+        
+@bot.command()
+async def 결과예측(ctx,mode=None,subject=None,*selection):
+    if mode=="create":
+        if ctx.author.id==owner:
+            if len(selection)>5:
+                await ctx.send("선택지는 최대 5개까지 만들수 있습니다.")
+                return
+            else:
+                sql="""isnert into predictlist (subject"""
+                print(sql)
+                for i in range(len(selection)):
+                    sql+=f",select{i}"
+                    print(sql)
+                sql+=f""") values ({subject}"""
+                print(sql)
+
+                for i in selection:
+                    sql+=f""",{selection}"""
+                    print(sql)
+                sql+=""")"""
+                print(sql)
+
+
+
 
 @bot.command()
 async def 일시정지(ctx):
