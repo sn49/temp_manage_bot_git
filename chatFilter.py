@@ -125,9 +125,10 @@ async def job():
         day = currentTime.day
         hour = currentTime.hour
         minute = currentTime.minute
+        second = currentTime.second
 
 
-        if minute%10==0:
+        if minute%10==0 and second==0:
             sql=f"select g_money from global"
             cur.execute(sql)
             g_money=cur.fetchone()[0]
