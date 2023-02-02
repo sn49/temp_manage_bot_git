@@ -21,7 +21,7 @@ owner= int(open("secret/ownerid.txt", "r").read())
 maintence=False
 testcheck = open("secret/bootmode.txt", "r").read()
 
-version="V-23-01-09-02"
+version="V-23-02-02-01"
 
 sqlinfo = open("secret/mysql.json", "r")
 sqlcon = json.load(sqlinfo)
@@ -72,25 +72,92 @@ async def on_ready():
         status=nextcord.Status.online,
         activity=nextcord.Game(f"{now.year}-{now.month}-{now.day}의 {daily_reboot}번째 부팅, 현재 버전 : {version}"),
     )
-    # bot.loop.create_task(job())
+    bot.loop.create_task(job())
 
 
 canspeak = None
 cantalk = None
 
 
+async def send_gmoney(sendmsg,channel,gMoneyMsg):
+    if not gMoneyMsg is None:
+        await gMoneyMsg.edit(sendmsg)
+    else:
+        gMoneyMsg=await channel.send(sendmsg)
+
+    return gMoneyMsg
+
+
+
 #음성채팅, 텍스트채팅
-# async def job():
+async def job():
+    gMoneyMsg=None
+    currentTime=arrow.now('Asia/Seoul')
+
+
+    year = currentTime.year
+    month = currentTime.month
+    day = currentTime.day
+    hour = currentTime.hour
+    minute = currentTime.minute
+
+    sql=f"select g_money from global"
+    cur.execute(sql)
+    g_money=cur.fetchone()[0]
 
 #     guild = await bot.fetch_guild(837200416303087616)
 #     role = guild.default_role
 #     perms = role.permissions
 
 #     await CheckTimeAndManagePermission(role, perms)
+    
+    
+    channel=int(open("secret/channel.txt").read())
+    channel=bot.get_channel(channel)
+    print(channel)
+    sendmsg=f"현재({year}년 {month}월 {day}일 {hour}시) 글로벌 머니 : {g_money})"
+    await send_gmoney(sendmsg,channel,gMoneyMsg)
+    while True:
 
-#     while True:
-#         await asyncio.sleep(60)
+        currentTime = datetime.now()
+        year = currentTime.year
+        month = currentTime.month
+        day = currentTime.day
+        hour = currentTime.hour
+        minute = currentTime.minute
+
+
+        if minute%10==0:
+            sql=f"select g_money from global"
+            cur.execute(sql)
+            g_money=cur.fetchone()[0]
+            print(g_money)
+
+            if g_money==0:
+                g_money=1
+            elif g_money>=1000000:
+                multiple=10
+            elif g_money>=100000000:
+                multiple=1.5
+            else:
+                multiple=1.1
+                
+            
+
+            sql=f"UPDATE global SET g_MONEY=g_MONEY*{multiple}"
+            cur.execute(sql)
+            res=int(g_money*multiple)
+
+            sendmsg=f"현재({year}년 {month}월 {day}일 {hour}시 {minute}분 기준) 글로벌 머니 : {res})"
+            gMoneyMsg=await send_gmoney(sendmsg,channel,gMoneyMsg)
+
+            
+
+
+        await asyncio.sleep(1)
 #         await CheckTimeAndManagePermission(role, perms)
+
+
 
 #현재 작동하지 않는 시간에 따른 권한 제한
 async def CheckTimeAndManagePermission(role, perms):
@@ -243,80 +310,75 @@ async def on_message_edit(before, after):
 
 @bot.event
 async def on_message(tempmessage):
+    print("test")
+    #if re.match("[A-z]{1}", tempmessage.content) and len(tempmessage.content) == 1:
+    
+    channelid = tempmessage.channel.id
 
-    if re.match("[A-z]{1}", tempmessage.content) and len(tempmessage.content) == 1:
+    #입장테스트 유저 데이터를 불러옴
+    sql=f"select test_string,remain_char from entry_test where discordid={tempmessage.author.id}"
+    cur.execute(sql)
 
-        channelid = tempmessage.channel.id
+    entry_test_data=cur.fetchone()
+    #입장 테스트 유저일때
+    if entry_test_data!=None:
+        """
+        remain_char=entry_test_data[2]
 
-        #입장테스트 유저 데이터를 불러옴
-        sql=f"select test_string,remain_char from entry_test where discordid={tempmessage.author.id}"
+        if entry_test_data[1][5-remain_char]==tempmessage.content:
+            #remain_char-1 DB에 반영
+
+            #remain_chara-1 쿼리
+            sql=f"update entry_test set remain_char=remain_char-1 where discordid={tempmessage.autuor.id}"
+
+
+            #remain_chara-1 쿼리 실행
+            cur.execute(sql)
+
+            
+
+            #입장테스트를 통과 했을때
+            if len(entry_test_data['test_string']) == 0:
+                """
+        testrole = nextcord.utils.get(tempmessage.guild.roles, name="멤버")
+        await tempmessage.author.add_roles(testrole)
+
+
+        #entry_test db에서 멤버 행 삭제 쿼리
+        sql=f"delete from entry_test where discordid={tempmessage.author.id}"
+
+        #쿼리 실행
         cur.execute(sql)
 
-        entry_test_data=cur.fetchone()
 
-        #입장 테스트 유저일때
-        if entry_test_data!=None:
-            """
-            remain_char=entry_test_data[2]
+        await bot.get_channel(channelid).delete()
 
-            if entry_test_data[1][5-remain_char]==tempmessage.content:
-                #remain_char-1 DB에 반영
+        #멤버 insert 쿼리
+        sql=f"insert into user (discordid) values ({tempmessage.author.id})"
 
-
-
-
-
-                #remain_chara-1 쿼리
-                sql=f"update entry_test set remain_char=remain_char-1 where discordid={tempmessage.autuor.id}"
-
-
-                #remain_chara-1 쿼리 실행
-                cur.execute(sql)
-
-                
-
-                #입장테스트를 통과 했을때
-                if len(entry_test_data['test_string']) == 0:
-                    """
-            testrole = nextcord.utils.get(tempmessage.guild.roles, name="멤버")
-            await tempmessage.author.add_roles(testrole)
-
-
-            #entry_test db에서 멤버 행 삭제 쿼리
-            sql=f"delete from entry_test where discordid={tempmessage.author.id}"
-
-            #쿼리 실행
-            cur.execute(sql)
-
-
-            await bot.get_channel(channelid).delete()
-
-            #멤버 insert 쿼리
-            sql=f"insert into user (discordid) values ({tempmessage.author.id})"
-
-            #멤버 insert 쿼리 실행
-            cur.execute(sql)
-            """
-                else:
-                    await tempmessage.channel.send(f"{len(entry_test_data['test_string'])}자 남음")
-                
+        #멤버 insert 쿼리 실행
+        cur.execute(sql)
+        """
             else:
-                await tempmessage.channel.send("문자를 틀렸거나 관리자가 대신 입력 할 수 없습니다.")
-                """
+                await tempmessage.channel.send(f"{len(entry_test_data['test_string'])}자 남음")
+            
+        else:
+            await tempmessage.channel.send("문자를 틀렸거나 관리자가 대신 입력 할 수 없습니다.")
+            """
 
-    else:
-        await CheckMessage(tempmessage)
-        
-        if (
-            tempmessage.author.bot
-        ):
-            return
-        
-        if tempmessage.content.startswith("c!") or tempmessage.content.startswith("C!") :
-            if maintence and tempmessage.author.id!=owner:
-                await tempmessage.channel.send("임시점검중입니다.")
-            else:
-                await bot.process_commands(tempmessage)
+    #else:
+    await CheckMessage(tempmessage)
+    
+    if (
+        tempmessage.author.bot
+    ):
+        return
+    
+    if tempmessage.content.startswith("c!") or tempmessage.content.startswith("C!") :
+        if maintence and tempmessage.author.id!=owner:
+            await tempmessage.channel.send("임시점검중입니다.")
+        else:
+            await bot.process_commands(tempmessage)
 
         
 
@@ -368,14 +430,8 @@ async def 상점(ctx,id=None):
 
    
 
-        
-
-
-
 @bot.command()
-async def 강화(ctx,go=None):
-
-
+async def 강화(ctx,go=None):        
     #level과 money를 가져오는 sql
     sql=f"select level,money from users where discordid={ctx.author.id}"
     cur.execute(sql)
@@ -409,6 +465,81 @@ async def 강화(ctx,go=None):
             await ctx.send(f"{cost-money}모아가 부족")
     else:
         await ctx.send(f"{level}레벨 강화비용 : {cost}모아")
+
+
+@bot.command()
+async def 글로벌강화(ctx,go=None):
+
+
+    #level과 money를 가져오는 sql
+    sql=f"select g_level,g_money,g_maxlevel from global"
+    cur.execute(sql)
+    res=cur.fetchone()
+
+    beforeLevel=res[0]
+    g_maxlevel=res[2]
+
+    if beforeLevel==30:
+        await ctx.send("더이상 강화를 할 수 없습니다.")
+    money=res[1]
+
+    cost=99999
+
+    if go=="go":
+        if money>=cost:
+            
+            #5업,3업,1업,유지,하락3,리셋
+            percent30=[3,10,47,35,4,1]
+
+            if sum(percent30)==100:
+
+                level=copy.deepcopy(beforeLevel)
+
+                sump=0
+                res=random.random()*100
+                for p in enumerate(percent30):
+                    print(p)
+
+                    sump+=p[1]
+
+                    print(res)
+                    print(sump)
+
+                    if res<sump:
+                        if p[0]==0:
+                            level+=5
+                        elif p[0]==1:
+                            level+=3
+                        elif p[0]==2:
+                            level+=1
+                        elif p[0]==3:
+                            level+=0
+                        elif p[0]==4:
+                            level-=3
+                        else:
+                            level=1
+                        break
+                print(f"DFJAKSFJ;LDSJF;A {level}")
+                
+                adds=f""
+                if level>g_maxlevel:
+                    adds=f", g_maxlevel={level}"
+
+
+                sql=f"update global set g_level={level}, g_money=g_money-{cost}{adds}"
+                cur.execute(sql)
+
+                log=f"글로벌강화 결과 : {beforeLevel} > {level}"
+                await ctx.send(log)
+                #로그 작성
+                log=bot_log(ctx.author.id,"글로벌강화",log)
+                log.write_log()
+            else:
+                await ctx.send(f"확률 총합이 100퍼가 아닙니다.")
+        else:
+            await ctx.send(f"{cost-money}모아가 부족")
+    else:
+        await ctx.send(f"{beforeLevel}레벨 강화비용 : {cost}모아")
 
 @bot.command()
 async def 랭킹(ctx,user=None):
@@ -640,7 +771,7 @@ async def 제한음챗(ctx):
 
 @bot.command()
 async def 채널온오프(ctx,index=1):
-    role_name=["로비2","봇테스트"]
+    role_name=["로비2","봇테스트","글로벌머니"]
 
     robby2role = nextcord.utils.get(ctx.guild.roles, name=role_name[int(index)-1])
 

@@ -93,5 +93,4 @@ def getReinforceResult():
 
         cost+=reinforce.getCost(int(level[0]))
         print(cost)
-
-getReinforceResult()
+getBettingResult()
