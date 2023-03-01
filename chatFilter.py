@@ -1,4 +1,3 @@
-from email.policy import default
 import nextcord
 from nextcord.ext import commands, tasks
 from nextcord.utils import get
@@ -16,6 +15,10 @@ import reinforce
 import math
 import traceback
 import copy
+
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import db
 
 owner= int(open("secret/ownerid.txt", "r").read())
 maintence=False

@@ -184,7 +184,7 @@ async def 대회지급(ctx,id,amount):
         if amount==None:
             await ctx.send("양 입력")
             return
-        user_dir=db.reference(f"{DBroot}/users/'{ctx.author.id}'")
+        user_dir=db.reference(f"{DBroot}/users/'{id}'")
         data=user_dir.get()
         user_dir.update({"Competition_Stack":data["Competition_Stack"]+int(amount)})
         await ctx.send("지급 완료")
