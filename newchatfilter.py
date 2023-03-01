@@ -58,7 +58,8 @@ elif testcheck == "main":
 
 @bot.event
 async def on_ready():
-    channel=open("secret/channelid.txt","r").read()
+    channel=int(open("secret/channelid.txt","r").read())
+    channel=bot.get_channel(channel)
     print("bot login test")
     print(bot.user.name)
     print(bot.user.id)
