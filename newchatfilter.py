@@ -58,6 +58,7 @@ elif testcheck == "main":
 
 @bot.event
 async def on_ready():
+    channel=open("secret/channelid.txt","r").read()
     print("bot login test")
     print(bot.user.name)
     print(bot.user.id)
@@ -67,6 +68,7 @@ async def on_ready():
         status=nextcord.Status.online,
         activity=nextcord.Game(f"{now.year}-{now.month}-{now.day}의 {daily_reboot}번째 부팅, 현재 버전 : {version}"),
     )
+    await channel.send("템프 관리 봇 켜짐")
 
 async def CheckMessage(message):
     blackwordfile = open("secret/blackword.txt", "r", encoding="UTF-8")
@@ -184,6 +186,7 @@ async def 대회지급(ctx,id,amount):
         user_dir=db.reference(f"{DBroot}/users/'{ctx.author.id}'")
         data=user_dir.get()
         user_dir.update({"Competition_Stack":data["Competition_Stack"]+int(amount)})
+        await ctx.send("지급 완료")
 
 
 
