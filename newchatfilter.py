@@ -175,13 +175,26 @@ async def 닉네임(ctx,id):
 
 
 @bot.command()
-async def 모두등록(ctx):
-    users=ctx.guild.members
+async def 대회지급(ctx,id,amount):
+    
+    if ctx.author.id==owner:
+        if amount==None:
+            await ctx.send("양 입력")
+            return
+        user_dir=db.reference(f"{DBroot}/users/'{ctx.author.id}'")
+        data=user_dir.get()
+        user_dir.update({"Competition_Stack":data["Competition_Stack"]+int(amount)})
 
-    for user in users:
-        if not user.bot:
-            user_dir=db.reference(f"{DBroot}/users/'{user.id}'")
-            user_dir.update({"Competition_Stack":0,"free_get":f"X"})
+
+
+# @bot.command()
+# async def 모두등록(ctx):
+#     users=ctx.guild.members
+
+#     for user in users:
+#         if not user.bot:
+#             user_dir=db.reference(f"{DBroot}/users/'{user.id}'")
+#             user_dir.update({"Competition_Stack":0,"free_get":f"X"})
 
 @bot.command()
 async def 출석(ctx):
