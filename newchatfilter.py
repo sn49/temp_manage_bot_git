@@ -80,15 +80,6 @@ async def CheckMessage(message):
     if message.author.bot:
         return
 
-    if (
-        ("?" in message.content or "？" in message.content)
-        and message.content[0] == message.content[-1]
-        and message.content[0] == "?"
-        and len(message.content) > 3
-    ):
-        await message.delete()
-        return
-
     fullmsg = message.content
 
     print("fullmsg   " + fullmsg)
@@ -210,6 +201,7 @@ async def 출석(ctx):
 
     if data["free_get"]!=f"{now.year}{now.month}{now.day}" or data["free_get"]=="X":
         user_dir.update({"Competition_Stack":data["Competition_Stack"]+1,"free_get":f"{now.year}{now.month}{now.day}"})
+        await ctx.send("출석완료")
 
     else:
         await ctx.send("오늘은 이미 출첵함")
